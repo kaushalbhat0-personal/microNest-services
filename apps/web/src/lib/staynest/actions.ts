@@ -13,6 +13,8 @@ import {
   createRoom as dbCreateRoom,
   updateRoom as dbUpdateRoom,
   deactivateRoom as dbDeactivateRoom,
+  createRentRecord as dbCreateRentRecord,
+  markRentPaid as dbMarkRentPaid,
   createAuditLog,
 } from '@micronest/db'
 
@@ -459,5 +461,91 @@ export async function deactivateRoom(id: string) {
   })
 
   revalidatePath('/dashboard/staynest/rooms')
+  revalidatePath('/dashboard/staynest')
+}
+
+export async function createRentRecord(
+  _prev: { error?: string | null; success?: boolean },
+  formData: FormData
+) {
+  const supabase = await createServerClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated', success: false }
+
+  const { data: orgs } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .single()
+
+  if (!orgs) return { error: 'No organization found', success: false }
+
+  const record = await dbCreateRentRecord(
+    supabase,
+    orgs.organization_id,
+    {
+      resident_id: formData.get('resident_id') as string,
+      room_id: formData.get('room_id') as string || null,
+      billing_month: parseInt(formData.get('billing_month') as string) || new Date().getMonth() + 1,
+      billing_year: parseInt(formData.get('billing_year') as string) || new Date().getFullYear(),
+      amount: parseInt(formData.get('amount') as string) || 0,
+      due_date: formData.get('due_date') as string,
+      notes: formData.get('notes') as string || null,
+    },
+    user.id
+  )
+
+  if (!record) return { error: 'Failed to create rent record.', success: false }
+
+  await createAuditLog(supabase, {
+    organization_id: orgs.organization_id,
+    user_id: user.id,
+    action: 'rent.created',
+    entity_type: 'staynest_rent_record',
+    entity_id: record.id,
+  })
+
+  revalidatePath('/dashboard/staynest/rent')
+  revalidatePath('/dashboard/staynest')
+  return { error: null, success: true }
+}
+
+export async function markRentPaid(
+  id: string,
+  paymentMethod: 'cash' | 'upi' | 'bank_transfer' | 'other'
+) {
+  const supabase = await createServerClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: orgs } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .single()
+
+  if (!orgs) return { error: 'No organization found' }
+
+  const record = await dbMarkRentPaid(supabase, orgs.organization_id, id, paymentMethod)
+
+  if (!record) return { error: 'Failed to mark rent as paid.' }
+
+  await createAuditLog(supabase, {
+    organization_id: orgs.organization_id,
+    user_id: user.id,
+    action: 'rent.paid',
+    entity_type: 'staynest_rent_record',
+    entity_id: id,
+  })
+
+  revalidatePath('/dashboard/staynest/rent')
   revalidatePath('/dashboard/staynest')
 }

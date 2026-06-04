@@ -31,3 +31,14 @@ export {
   deactivateRoom,
   countRoomsByStatus,
 } from './rooms'
+
+export {
+  listRentRecords,
+  getRentRecordById,
+  createRentRecord,
+  markRentPaid,
+  countPendingRent,
+  countCollectedRent,
+  countOverdueRent,
+  countPendingRecords,
+} from './rents'

@@ -2,8 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Card, CardBody, StatusBadge } from '@micronest/ui'
 import { createServerClient } from '@micronest/auth'
-import { getUserOrganizations, listVisitors, listComplaints, countComplaintsByStatus, countResidentsByStatus, listRooms } from '@micronest/db'
-import { STATS } from '@/lib/staynest/data'
+import { getUserOrganizations, listVisitors, listComplaints, countComplaintsByStatus, countResidentsByStatus, listRooms, countPendingRent, countCollectedRent, countOverdueRent, countPendingRecords } from '@micronest/db'
 
 export const metadata: Metadata = {
   title: 'StayNest',
@@ -48,6 +47,10 @@ export default async function StayNestOverviewPage() {
   let totalRooms = 0
   let totalCapacity = 0
   let totalOccupied = 0
+  let rentDue = 0
+  let rentCollected = 0
+  let rentOverdue = 0
+  let rentPendingCount = 0
 
   if (user) {
     const orgs = await getUserOrganizations(supabase, user.id)
@@ -70,6 +73,17 @@ export default async function StayNestOverviewPage() {
       totalRooms = rooms.length
       totalCapacity = rooms.reduce((sum, r) => sum + r.capacity, 0)
       totalOccupied = rooms.reduce((sum, r) => sum + r.occupied_count, 0)
+
+      const [pending, collected, overdue, pendingRecs] = await Promise.all([
+        countPendingRent(supabase, orgId),
+        countCollectedRent(supabase, orgId),
+        countOverdueRent(supabase, orgId),
+        countPendingRecords(supabase, orgId),
+      ])
+      rentDue = pending + overdue
+      rentCollected = collected
+      rentOverdue = overdue
+      rentPendingCount = pendingRecs
     }
   }
 
@@ -125,10 +139,10 @@ export default async function StayNestOverviewPage() {
               Pending Rent
             </p>
             <p className="mt-1 text-2xl font-bold text-red-600">
-              ₹{STATS.pendingRentAmount.toLocaleString()}
+              ₹{rentDue.toLocaleString()}
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              {STATS.pendingRentCount} tenants overdue or pending
+              {rentPendingCount} records pending
             </p>
           </CardBody>
         </Card>
@@ -258,7 +272,7 @@ export default async function StayNestOverviewPage() {
           ← Raise a complaint
         </Link>
         <Link
-          href="/dashboard/staynest/rent-reminder"
+          href="/dashboard/staynest/rent"
           className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
         >
           ← Check rent status

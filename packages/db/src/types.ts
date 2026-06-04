@@ -157,6 +157,24 @@ export interface StayNestRoom {
   updated_at: string
 }
 
+export interface StayNestRentRecord {
+  id: string
+  organization_id: string
+  resident_id: string
+  room_id: string | null
+  billing_month: number
+  billing_year: number
+  amount: number
+  due_date: string
+  paid_at: string | null
+  payment_method: 'cash' | 'upi' | 'bank_transfer' | 'other' | null
+  status: 'pending' | 'paid' | 'overdue'
+  notes: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
 // ── Database type map ────────────────────────────────────────────────
 
 export interface Database {
@@ -216,6 +234,11 @@ export interface Database {
         Row: StayNestRoom
         Insert: Omit<StayNestRoom, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<StayNestRoom, 'id'>>
+      }
+      staynest_rent_records: {
+        Row: StayNestRentRecord
+        Insert: Omit<StayNestRentRecord, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<StayNestRentRecord, 'id'>>
       }
     }
     Views: Record<string, never>

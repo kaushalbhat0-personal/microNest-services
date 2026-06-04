@@ -6,7 +6,7 @@ const tabs = [
   { href: '/dashboard/staynest/residents', label: 'Residents' },
   { href: '/dashboard/staynest/visitors', label: 'Visitor Log' },
   { href: '/dashboard/staynest/complaints', label: 'Complaints' },
-  { href: '/dashboard/staynest/rent-reminder', label: 'Rent Reminder' },
+  { href: '/dashboard/staynest/rent', label: 'Rent' },
 ]
 
 export default function StayNestLayout({

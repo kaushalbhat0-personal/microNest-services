@@ -11,6 +11,7 @@ export type {
   StayNestComplaint,
   StayNestResident,
   StayNestRoom,
+  StayNestRentRecord,
 } from './types'
 export type {
   OrganizationRole,
@@ -57,4 +58,12 @@ export {
   updateRoom,
   deactivateRoom,
   countRoomsByStatus,
+  listRentRecords,
+  getRentRecordById,
+  createRentRecord,
+  markRentPaid,
+  countPendingRent,
+  countCollectedRent,
+  countOverdueRent,
+  countPendingRecords,
 } from './staynest'

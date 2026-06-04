@@ -1,0 +1,8 @@
+{
+  "name": "micronest",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ]
+}

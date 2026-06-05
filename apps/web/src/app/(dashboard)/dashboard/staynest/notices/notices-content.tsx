@@ -12,19 +12,19 @@ import {
   CardBody,
 } from '@micronest/ui'
 import type { Column } from '@micronest/ui'
-import type { StayNestNotice } from '@micronest/db'
-import { createNotice, updateNotice, publishNotice, archiveNotice } from '@/lib/staynest/actions'
+import type { StayNestAnnouncement } from '@micronest/db'
+import { createAnnouncement, updateAnnouncement, deleteAnnouncement } from '@/lib/staynest/actions'
 
-const statusVariant: Record<string, 'default' | 'success' | 'info'> = {
-  draft: 'default',
-  published: 'success',
-  archived: 'info',
+const priorityVariant: Record<string, 'default' | 'warning' | 'danger'> = {
+  normal: 'default',
+  important: 'warning',
+  urgent: 'danger',
 }
 
-const statusLabel: Record<string, string> = {
-  draft: 'Draft',
-  published: 'Published',
-  archived: 'Archived',
+const priorityLabel: Record<string, string> = {
+  normal: 'Normal',
+  important: 'Important',
+  urgent: 'Urgent',
 }
 
 function formatDate(iso: string) {
@@ -48,14 +48,17 @@ function formatDateTime(iso: string) {
 const emptyForm = {
   id: '',
   title: '',
-  content: '',
+  message: '',
+  priority: 'normal' as 'normal' | 'important' | 'urgent',
+  publish_date: new Date().toISOString().slice(0, 16),
+  expiry_date: '',
 }
 
 export function NoticesContent({
   initialNotices,
   organizationId,
 }: {
-  initialNotices: StayNestNotice[]
+  initialNotices: StayNestAnnouncement[]
   organizationId: string | null
 }) {
   const router = useRouter()
@@ -71,8 +74,8 @@ export function NoticesContent({
   }, [])
 
   const handleSave = useCallback(async () => {
-    if (!form.title || !form.content) {
-      setError('Title and content are required.')
+    if (!form.title || !form.message) {
+      setError('Title and message are required.')
       return
     }
     setError(null)
@@ -80,11 +83,14 @@ export function NoticesContent({
 
     const formData = new FormData()
     formData.set('title', form.title)
-    formData.set('content', form.content)
+    formData.set('message', form.message)
+    formData.set('priority', form.priority)
+    formData.set('publish_date', form.publish_date || new Date().toISOString())
+    formData.set('expiry_date', form.expiry_date || '')
 
     if (isEditing) {
       formData.set('id', form.id)
-      const result = await updateNotice({ error: null, success: false }, formData)
+      const result = await updateAnnouncement({ error: null, success: false }, formData)
       if (result?.error) {
         setError(result.error)
         setLoading(false)
@@ -95,7 +101,7 @@ export function NoticesContent({
         router.refresh()
       }
     } else {
-      const result = await createNotice({ error: null, success: false }, formData)
+      const result = await createAnnouncement({ error: null, success: false }, formData)
       if (result?.error) {
         setError(result.error)
         setLoading(false)
@@ -108,19 +114,22 @@ export function NoticesContent({
     }
   }, [form, isEditing, resetForm, router])
 
-  const handleEdit = useCallback((notice: StayNestNotice) => {
+  const handleEdit = useCallback((announcement: StayNestAnnouncement) => {
     setForm({
-      id: notice.id,
-      title: notice.title,
-      content: notice.content,
+      id: announcement.id,
+      title: announcement.title,
+      message: announcement.message,
+      priority: announcement.priority,
+      publish_date: announcement.publish_date?.slice(0, 16) ?? '',
+      expiry_date: announcement.expiry_date?.slice(0, 16) ?? '',
     })
     setShowForm(true)
     setError(null)
   }, [])
 
-  const handlePublish = useCallback(
+  const handleDelete = useCallback(
     async (id: string) => {
-      const result = await publishNotice(id)
+      const result = await deleteAnnouncement(id)
       if (result?.error) {
         setError(result.error)
       } else {
@@ -130,64 +139,56 @@ export function NoticesContent({
     [router]
   )
 
-  const handleArchive = useCallback(
-    async (id: string) => {
-      const result = await archiveNotice(id)
-      if (result?.error) {
-        setError(result.error)
-      } else {
-        router.refresh()
-      }
-    },
-    [router]
-  )
+  const isPublished = (a: StayNestAnnouncement) =>
+    a.publish_date && new Date(a.publish_date) <= new Date()
 
-  const columns: Column<StayNestNotice>[] = [
-    { header: 'Title', accessor: (n) => <span className="text-sm font-medium text-gray-900">{n.title}</span> },
+  const columns: Column<StayNestAnnouncement>[] = [
+    { header: 'Title', accessor: (a) => <span className="text-sm font-medium text-gray-900">{a.title}</span> },
     {
-      header: 'Content',
+      header: 'Message',
       hideOnMobile: true,
-      accessor: (n) => (
-        <span className="text-sm text-gray-600 line-clamp-2">{n.content}</span>
+      accessor: (a) => (
+        <span className="text-sm text-gray-600 line-clamp-2">{a.message}</span>
       ),
     },
     {
-      header: 'Status',
-      accessor: (n) => (
-        <StatusBadge variant={statusVariant[n.status]}>
-          {statusLabel[n.status]}
+      header: 'Priority',
+      accessor: (a) => (
+        <StatusBadge variant={priorityVariant[a.priority]}>
+          {priorityLabel[a.priority]}
         </StatusBadge>
       ),
     },
     {
-      header: 'Published At',
+      header: 'Status',
       hideOnMobile: true,
-      accessor: (n) =>
-        n.published_at ? (
-          <span className="text-xs text-gray-500">{formatDateTime(n.published_at)}</span>
+      accessor: (a) =>
+        isPublished(a) ? (
+          <span className="text-xs text-green-600 font-medium">Published</span>
+        ) : (
+          <span className="text-xs text-gray-400">Draft</span>
+        ),
+    },
+    {
+      header: 'Publish Date',
+      hideOnMobile: true,
+      accessor: (a) =>
+        a.publish_date ? (
+          <span className="text-xs text-gray-500">{formatDateTime(a.publish_date)}</span>
         ) : (
           <span className="text-xs text-gray-400">—</span>
         ),
     },
     {
       header: '',
-      accessor: (n) => (
+      accessor: (a) => (
         <div className="flex gap-2">
-          {n.status === 'draft' && (
-            <>
-              <Button size="sm" variant="ghost" onClick={() => handleEdit(n)}>
-                Edit
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => handlePublish(n.id)}>
-                Publish
-              </Button>
-            </>
-          )}
-          {n.status === 'published' && (
-            <Button size="sm" variant="ghost" onClick={() => handleArchive(n.id)}>
-              Archive
-            </Button>
-          )}
+          <Button size="sm" variant="ghost" onClick={() => handleEdit(a)}>
+            Edit
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => handleDelete(a.id)}>
+            Delete
+          </Button>
         </div>
       ),
     },
@@ -196,7 +197,7 @@ export function NoticesContent({
   return (
     <div>
       <PageHeader
-        title="Notices"
+        title="Announcements"
         description="Create and manage announcements for residents."
         actions={
           <Button
@@ -205,7 +206,7 @@ export function NoticesContent({
               if (showForm) resetForm()
             }}
           >
-            {showForm ? 'Cancel' : isEditing ? 'Cancel' : 'Create Notice'}
+            {showForm ? 'Cancel' : 'New Announcement'}
           </Button>
         }
       />
@@ -214,7 +215,7 @@ export function NoticesContent({
         <Card className="mb-6 border-amber-200">
           <CardBody>
             <h3 className="mb-4 text-sm font-semibold text-gray-900">
-              {isEditing ? 'Edit Notice' : 'New Notice'}
+              {isEditing ? 'Edit Announcement' : 'New Announcement'}
             </h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
@@ -229,15 +230,51 @@ export function NoticesContent({
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                 />
               </div>
-              <div>
+              <div className="sm:col-span-2">
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Content *
+                  Message *
                 </label>
                 <textarea
                   rows={4}
                   required
-                  value={form.content}
-                  onChange={(e) => setForm({ ...form, content: e.target.value })}
+                  value={form.message}
+                  onChange={(e) => setForm({ ...form, message: e.target.value })}
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Priority
+                </label>
+                <select
+                  value={form.priority}
+                  onChange={(e) => setForm({ ...form, priority: e.target.value as any })}
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                >
+                  <option value="normal">Normal</option>
+                  <option value="important">Important</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Publish Date
+                </label>
+                <input
+                  type="datetime-local"
+                  value={form.publish_date}
+                  onChange={(e) => setForm({ ...form, publish_date: e.target.value })}
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Expiry Date
+                </label>
+                <input
+                  type="datetime-local"
+                  value={form.expiry_date}
+                  onChange={(e) => setForm({ ...form, expiry_date: e.target.value })}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                 />
               </div>
@@ -258,7 +295,7 @@ export function NoticesContent({
                 Cancel
               </Button>
               <Button loading={loading} onClick={handleSave}>
-                {isEditing ? 'Update Notice' : 'Create Notice'}
+                {isEditing ? 'Update' : 'Create'}
               </Button>
             </div>
           </CardBody>
@@ -267,56 +304,44 @@ export function NoticesContent({
 
       {initialNotices.length === 0 ? (
         <EmptyState
-          title="No notices yet"
-          description="Create your first notice to get started."
-          action={{ label: 'Create Notice', onClick: () => setShowForm(true) }}
+          title="No announcements yet"
+          description="Create your first announcement to get started."
+          action={{ label: 'New Announcement', onClick: () => setShowForm(true) }}
         />
       ) : (
         <Table
           columns={columns}
           data={initialNotices}
-          keyExtractor={(n) => n.id}
-          renderCard={(n) => (
+          keyExtractor={(a) => a.id}
+          renderCard={(a) => (
             <div>
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{n.title}</p>
-                  <p className="mt-1 text-sm text-gray-600 line-clamp-3">{n.content}</p>
+                  <p className="font-medium text-gray-900 truncate">{a.title}</p>
+                  <p className="mt-1 text-sm text-gray-600 line-clamp-3">{a.message}</p>
                 </div>
-                <StatusBadge variant={statusVariant[n.status]}>
-                  {statusLabel[n.status]}
+                <StatusBadge variant={priorityVariant[a.priority]}>
+                  {priorityLabel[a.priority]}
                 </StatusBadge>
               </div>
-              {n.published_at && (
+              {a.publish_date && (
                 <p className="mt-2 text-xs text-gray-400">
-                  Published {formatDateTime(n.published_at)}
+                  {isPublished(a) ? 'Published' : 'Scheduled'} {formatDateTime(a.publish_date)}
                 </p>
               )}
               <div className="mt-3 flex gap-2">
-                {n.status === 'draft' && (
-                  <>
-                    <button
-                      onClick={() => handleEdit(n)}
-                      className="min-h-[44px] rounded-md bg-indigo-50 px-4 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handlePublish(n.id)}
-                      className="min-h-[44px] rounded-md bg-green-50 px-4 text-sm font-medium text-green-700 hover:bg-green-100"
-                    >
-                      Publish
-                    </button>
-                  </>
-                )}
-                {n.status === 'published' && (
-                  <button
-                    onClick={() => handleArchive(n.id)}
-                    className="min-h-[44px] rounded-md bg-gray-50 px-4 text-sm font-medium text-gray-600 hover:bg-gray-100"
-                  >
-                    Archive
-                  </button>
-                )}
+                <button
+                  onClick={() => handleEdit(a)}
+                  className="min-h-[44px] rounded-md bg-indigo-50 px-4 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(a.id)}
+                  className="min-h-[44px] rounded-md bg-red-50 px-4 text-sm font-medium text-red-600 hover:bg-red-100"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           )}

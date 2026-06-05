@@ -13,16 +13,18 @@ import {
 } from '@micronest/ui'
 import type { Column } from '@micronest/ui'
 import type { StayNestResident } from '@micronest/db'
-import { createResident, updateResident, deactivateResident } from '@/lib/staynest/actions'
+import { createResident, updateResident, checkoutResident } from '@/lib/staynest/actions'
 
-const statusVariant: Record<string, 'success' | 'default'> = {
+const statusVariant: Record<string, 'success' | 'warning' | 'default'> = {
   active: 'success',
-  inactive: 'default',
+  notice_period: 'warning',
+  checked_out: 'default',
 }
 
 const statusLabel: Record<string, string> = {
   active: 'Active',
-  inactive: 'Inactive',
+  notice_period: 'Notice Period',
+  checked_out: 'Checked Out',
 }
 
 const genderLabel: Record<string, string> = {
@@ -45,11 +47,13 @@ const emptyForm = {
   phone: '',
   email: '',
   gender: '',
-  guardian_name: '',
-  guardian_phone: '',
-  room_number: '',
-  joining_date: new Date().toISOString().slice(0, 10),
-  notes: '',
+  emergency_contact_name: '',
+  emergency_contact_phone: '',
+  id_proof_type: '',
+  id_proof_number: '',
+  room_id: '',
+  bed_number: 0,
+  check_in_date: new Date().toISOString().slice(0, 10),
 }
 
 export function ResidentsContent({
@@ -72,8 +76,8 @@ export function ResidentsContent({
   }, [])
 
   const handleSave = useCallback(async () => {
-    if (!form.full_name || !form.phone || !form.room_number || !form.joining_date) {
-      setError('Full name, phone, room number, and joining date are required.')
+    if (!form.full_name || !form.phone || !form.check_in_date) {
+      setError('Full name, phone, and check-in date are required.')
       return
     }
     setError(null)
@@ -84,11 +88,13 @@ export function ResidentsContent({
     formData.set('phone', form.phone)
     formData.set('email', form.email)
     formData.set('gender', form.gender)
-    formData.set('guardian_name', form.guardian_name)
-    formData.set('guardian_phone', form.guardian_phone)
-    formData.set('room_number', form.room_number)
-    formData.set('joining_date', form.joining_date)
-    formData.set('notes', form.notes)
+    formData.set('emergency_contact_name', form.emergency_contact_name)
+    formData.set('emergency_contact_phone', form.emergency_contact_phone)
+    formData.set('id_proof_type', form.id_proof_type)
+    formData.set('id_proof_number', form.id_proof_number)
+    formData.set('room_id', form.room_id)
+    formData.set('bed_number', String(form.bed_number))
+    formData.set('check_in_date', form.check_in_date)
 
     if (isEditing) {
       formData.set('id', form.id)
@@ -123,19 +129,21 @@ export function ResidentsContent({
       phone: resident.phone,
       email: resident.email ?? '',
       gender: resident.gender ?? '',
-      guardian_name: resident.guardian_name ?? '',
-      guardian_phone: resident.guardian_phone ?? '',
-      room_number: resident.room_number,
-      joining_date: resident.joining_date.slice(0, 10),
-      notes: resident.notes ?? '',
+      emergency_contact_name: resident.emergency_contact_name ?? '',
+      emergency_contact_phone: resident.emergency_contact_phone ?? '',
+      id_proof_type: resident.id_proof_type ?? '',
+      id_proof_number: resident.id_proof_number ?? '',
+      room_id: resident.room_id ?? '',
+      bed_number: resident.bed_number ?? 0,
+      check_in_date: resident.check_in_date.slice(0, 10),
     })
     setShowForm(true)
     setError(null)
   }, [])
 
-  const handleDeactivate = useCallback(
+  const handleCheckout = useCallback(
     async (id: string) => {
-      const result = await deactivateResident(id)
+      const result = await checkoutResident(id)
       if (result?.error) {
         setError(result.error)
       } else {
@@ -148,7 +156,7 @@ export function ResidentsContent({
   const columns: Column<StayNestResident>[] = [
     { header: 'Full Name', accessor: (r) => r.full_name },
     { header: 'Phone', accessor: (r) => r.phone, hideOnMobile: true },
-    { header: 'Room', accessor: (r) => r.room_number },
+    { header: 'Room', accessor: (r) => r.room_id ?? '—' },
     {
       header: 'Gender',
       hideOnMobile: true,
@@ -160,10 +168,10 @@ export function ResidentsContent({
         ),
     },
     {
-      header: 'Joining Date',
+      header: 'Check-in',
       hideOnMobile: true,
       accessor: (r) => (
-        <span className="text-xs text-gray-500">{formatDate(r.joining_date)}</span>
+        <span className="text-xs text-gray-500">{formatDate(r.check_in_date)}</span>
       ),
     },
     {
@@ -185,9 +193,9 @@ export function ResidentsContent({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => handleDeactivate(r.id)}
+              onClick={() => handleCheckout(r.id)}
             >
-              Deactivate
+              Checkout
             </Button>
           )}
         </div>
@@ -271,58 +279,87 @@ export function ResidentsContent({
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Guardian Name
+                  Emergency Contact Name
                 </label>
                 <input
                   type="text"
-                  value={form.guardian_name}
-                  onChange={(e) => setForm({ ...form, guardian_name: e.target.value })}
+                  value={form.emergency_contact_name}
+                  onChange={(e) => setForm({ ...form, emergency_contact_name: e.target.value })}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Guardian Phone
+                  Emergency Contact Phone
                 </label>
                 <input
                   type="text"
-                  value={form.guardian_phone}
-                  onChange={(e) => setForm({ ...form, guardian_phone: e.target.value })}
+                  value={form.emergency_contact_phone}
+                  onChange={(e) => setForm({ ...form, emergency_contact_phone: e.target.value })}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Room Number *
+                  ID Proof Type
+                </label>
+                <select
+                  value={form.id_proof_type}
+                  onChange={(e) => setForm({ ...form, id_proof_type: e.target.value })}
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                >
+                  <option value="">Select</option>
+                  <option value="aadhaar">Aadhaar</option>
+                  <option value="pan">PAN</option>
+                  <option value="voter">Voter ID</option>
+                  <option value="driving_license">Driving License</option>
+                  <option value="passport">Passport</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  ID Proof Number
                 </label>
                 <input
                   type="text"
-                  required
-                  value={form.room_number}
-                  onChange={(e) => setForm({ ...form, room_number: e.target.value })}
+                  value={form.id_proof_number}
+                  onChange={(e) => setForm({ ...form, id_proof_number: e.target.value })}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Joining Date *
+                  Room ID
+                </label>
+                <input
+                  type="text"
+                  value={form.room_id}
+                  onChange={(e) => setForm({ ...form, room_id: e.target.value })}
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Bed Number
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.bed_number}
+                  onChange={(e) => setForm({ ...form, bed_number: parseInt(e.target.value) || 0 })}
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Check-in Date *
                 </label>
                 <input
                   type="date"
                   required
-                  value={form.joining_date}
-                  onChange={(e) => setForm({ ...form, joining_date: e.target.value })}
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Notes
-                </label>
-                <textarea
-                  rows={2}
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  value={form.check_in_date}
+                  onChange={(e) => setForm({ ...form, check_in_date: e.target.value })}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                 />
               </div>
@@ -370,8 +407,8 @@ export function ResidentsContent({
                 </StatusBadge>
               </div>
               <div className="mt-2 space-y-1 text-sm text-gray-500">
-                <p>Room {r.room_number} &middot; {r.phone}</p>
-                <p>Joined {formatDate(r.joining_date)}</p>
+                <p>Room {r.room_id ?? '—'} &middot; {r.phone}</p>
+                <p>Checked in {formatDate(r.check_in_date)}</p>
               </div>
               <div className="mt-3 flex gap-2">
                 <button
@@ -382,10 +419,10 @@ export function ResidentsContent({
                 </button>
                 {r.status === 'active' && (
                   <button
-                    onClick={() => handleDeactivate(r.id)}
-                    className="min-h-[44px] rounded-md bg-gray-50 px-4 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                    onClick={() => handleCheckout(r.id)}
+                    className="min-h-[44px] rounded-md bg-amber-50 px-4 text-sm font-medium text-amber-700 hover:bg-amber-100"
                   >
-                    Deactivate
+                    Checkout
                   </button>
                 )}
               </div>

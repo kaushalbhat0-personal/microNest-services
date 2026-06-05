@@ -12,31 +12,46 @@ import {
   CardBody,
 } from '@micronest/ui'
 import type { Column } from '@micronest/ui'
-import type { StayNestComplaint } from '@micronest/db'
-import { createComplaint, updateComplaintStatus } from '@/lib/staynest/actions'
+import type { StayNestMaintenanceRequest } from '@micronest/db'
+import { createMaintenanceRequest, updateMaintenanceStatus, assignMaintenanceRequest } from '@/lib/staynest/actions'
 
 const priorityVariant: Record<string, 'info' | 'warning' | 'danger'> = {
   low: 'info',
   medium: 'warning',
   high: 'danger',
+  urgent: 'danger',
 }
 
-const statusVariant: Record<string, 'info' | 'warning' | 'success'> = {
+const statusVariant: Record<string, 'info' | 'warning' | 'success' | 'default'> = {
   open: 'info',
-  'in-progress': 'warning',
+  assigned: 'warning',
+  in_progress: 'warning',
   resolved: 'success',
+  closed: 'default',
 }
 
 const priorityLabel: Record<string, string> = {
   low: 'Low',
   medium: 'Medium',
   high: 'High',
+  urgent: 'Urgent',
 }
 
 const statusLabel: Record<string, string> = {
   open: 'Open',
-  'in-progress': 'In Progress',
+  assigned: 'Assigned',
+  in_progress: 'In Progress',
   resolved: 'Resolved',
+  closed: 'Closed',
+}
+
+const categoryLabel: Record<string, string> = {
+  electrical: 'Electrical',
+  plumbing: 'Plumbing',
+  furniture: 'Furniture',
+  internet: 'Internet',
+  cleaning: 'Cleaning',
+  other: 'Other',
 }
 
 function formatDate(iso: string) {
@@ -49,16 +64,15 @@ function formatDate(iso: string) {
 const emptyForm = {
   title: '',
   description: '',
-  raised_by: '',
-  room_number: '',
-  priority: 'medium',
+  category: 'other' as const,
+  priority: 'medium' as const,
 }
 
 export function ComplaintsContent({
   initialComplaints,
   organizationId,
 }: {
-  initialComplaints: StayNestComplaint[]
+  initialComplaints: StayNestMaintenanceRequest[]
   organizationId: string | null
 }) {
   const router = useRouter()
@@ -67,19 +81,18 @@ export function ComplaintsContent({
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const handleAddComplaint = useCallback(async () => {
-    if (!form.title || !form.description || !form.raised_by) return
+  const handleAddRequest = useCallback(async () => {
+    if (!form.title || !form.description) return
     setError(null)
     setLoading(true)
 
     const formData = new FormData()
     formData.set('title', form.title)
     formData.set('description', form.description)
-    formData.set('raised_by', form.raised_by)
-    formData.set('room_number', form.room_number)
+    formData.set('category', form.category)
     formData.set('priority', form.priority)
 
-    const result = await createComplaint({ error: null, success: false }, formData)
+    const result = await createMaintenanceRequest({ error: null, success: false }, formData)
 
     if (result?.error) {
       setError(result.error)
@@ -93,8 +106,8 @@ export function ComplaintsContent({
   }, [form, router])
 
   const handleUpdateStatus = useCallback(
-    async (id: string, status: 'open' | 'in-progress' | 'resolved') => {
-      const result = await updateComplaintStatus(id, status)
+    async (id: string, status: 'open' | 'assigned' | 'in_progress' | 'resolved' | 'closed') => {
+      const result = await updateMaintenanceStatus(id, status)
       if (result?.error) {
         setError(result.error)
       } else {
@@ -104,72 +117,82 @@ export function ComplaintsContent({
     [router]
   )
 
-  function renderActions(complaint: StayNestComplaint) {
-    if (complaint.status === 'resolved') return null
+  function renderActions(req: StayNestMaintenanceRequest) {
+    if (req.status === 'resolved' || req.status === 'closed') return null
 
     return (
       <div className="flex gap-2">
-        {complaint.status === 'open' && (
+        {req.status === 'open' && (
           <Button
             size="sm"
             variant="outline"
-            onClick={() => handleUpdateStatus(complaint.id, 'in-progress')}
+            onClick={() => handleUpdateStatus(req.id, 'assigned')}
           >
-            In Progress
+            Assign
           </Button>
         )}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleUpdateStatus(complaint.id, 'resolved')}
-        >
-          Resolve
-        </Button>
+        {req.status === 'assigned' && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleUpdateStatus(req.id, 'in_progress')}
+          >
+            Start
+          </Button>
+        )}
+        {(req.status === 'assigned' || req.status === 'in_progress') && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleUpdateStatus(req.id, 'resolved')}
+          >
+            Resolve
+          </Button>
+        )}
       </div>
     )
   }
 
-  const columns: Column<StayNestComplaint>[] = [
-    { header: 'Title', accessor: (c) => c.title },
-    { header: 'Room', accessor: (c) => c.room_number, hideOnMobile: true },
-    { header: 'Raised By', accessor: (c) => c.raised_by, hideOnMobile: true },
+  const columns: Column<StayNestMaintenanceRequest>[] = [
+    { header: 'Title', accessor: (r) => r.title },
+    { header: 'Category', accessor: (r) => categoryLabel[r.category] ?? r.category, hideOnMobile: true },
     {
       header: 'Date',
       hideOnMobile: true,
-      accessor: (c) => (
-        <span className="text-xs text-gray-500">{formatDate(c.created_at)}</span>
+      accessor: (r) => (
+        <span className="text-xs text-gray-500">{formatDate(r.created_at)}</span>
       ),
     },
     {
       header: 'Priority',
-      accessor: (c) => (
-        <StatusBadge variant={priorityVariant[c.priority]}>
-          {priorityLabel[c.priority]}
+      accessor: (r) => (
+        <StatusBadge variant={priorityVariant[r.priority]}>
+          {priorityLabel[r.priority]}
         </StatusBadge>
       ),
     },
     {
       header: 'Status',
-      accessor: (c) => (
-        <StatusBadge variant={statusVariant[c.status]}>
-          {statusLabel[c.status]}
+      accessor: (r) => (
+        <StatusBadge variant={statusVariant[r.status]}>
+          {statusLabel[r.status]}
         </StatusBadge>
       ),
     },
     {
       header: '',
-      accessor: (c) => renderActions(c),
+      accessor: (r) => renderActions(r),
     },
   ]
 
   return (
     <div>
       <PageHeader
-        title="Complaint Tracker"
-        description="Track and resolve tenant complaints."
+        title="Maintenance Requests"
+        description="Track and resolve maintenance issues."
         actions={
           <Button onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Cancel' : 'Raise Complaint'}
+            {showForm ? 'Cancel' : 'New Request'}
           </Button>
         }
       />
@@ -178,7 +201,7 @@ export function ComplaintsContent({
         <Card className="mb-6 border-amber-200">
           <CardBody>
             <h3 className="mb-4 text-sm font-semibold text-gray-900">
-              New Complaint
+              New Maintenance Request
             </h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
@@ -209,30 +232,22 @@ export function ComplaintsContent({
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Raised By
+                  Category
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={form.raised_by}
+                <select
+                  value={form.category}
                   onChange={(e) =>
-                    setForm({ ...form, raised_by: e.target.value })
+                    setForm({ ...form, category: e.target.value as any })
                   }
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Room Number
-                </label>
-                <input
-                  type="text"
-                  value={form.room_number}
-                  onChange={(e) =>
-                    setForm({ ...form, room_number: e.target.value })
-                  }
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                />
+                >
+                  <option value="electrical">Electrical</option>
+                  <option value="plumbing">Plumbing</option>
+                  <option value="furniture">Furniture</option>
+                  <option value="internet">Internet</option>
+                  <option value="cleaning">Cleaning</option>
+                  <option value="other">Other</option>
+                </select>
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -241,13 +256,14 @@ export function ComplaintsContent({
                 <select
                   value={form.priority}
                   onChange={(e) =>
-                    setForm({ ...form, priority: e.target.value })
+                    setForm({ ...form, priority: e.target.value as any })
                   }
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
                 </select>
               </div>
             </div>
@@ -267,8 +283,8 @@ export function ComplaintsContent({
               >
                 Cancel
               </Button>
-              <Button loading={loading} onClick={handleAddComplaint}>
-                Raise Complaint
+              <Button loading={loading} onClick={handleAddRequest}>
+                Create Request
               </Button>
             </div>
           </CardBody>
@@ -277,10 +293,10 @@ export function ComplaintsContent({
 
       {initialComplaints.length === 0 ? (
         <EmptyState
-          title="No complaints yet"
-          description="Tenant complaints will appear here."
+          title="No maintenance requests"
+          description="New requests will appear here."
           action={{
-            label: 'Raise Complaint',
+            label: 'New Request',
             onClick: () => setShowForm(true),
           }}
         />
@@ -288,42 +304,52 @@ export function ComplaintsContent({
         <Table
           columns={columns}
           data={initialComplaints}
-          keyExtractor={(c) => c.id}
-          renderCard={(c) => (
+          keyExtractor={(r) => r.id}
+          renderCard={(r) => (
             <div>
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{c.title}</p>
+                  <p className="font-medium text-gray-900 truncate">{r.title}</p>
                   <p className="mt-0.5 text-sm text-gray-500">
-                    Room {c.room_number} &middot; {c.raised_by}
+                    {categoryLabel[r.category] ?? r.category}
                   </p>
                 </div>
-                <StatusBadge variant={priorityVariant[c.priority]}>
-                  {priorityLabel[c.priority]}
+                <StatusBadge variant={priorityVariant[r.priority]}>
+                  {priorityLabel[r.priority]}
                 </StatusBadge>
               </div>
               <div className="mt-2 flex items-center gap-2">
-                <StatusBadge variant={statusVariant[c.status]}>
-                  {statusLabel[c.status]}
+                <StatusBadge variant={statusVariant[r.status]}>
+                  {statusLabel[r.status]}
                 </StatusBadge>
-                <span className="text-xs text-gray-400">{formatDate(c.created_at)}</span>
+                <span className="text-xs text-gray-400">{formatDate(r.created_at)}</span>
               </div>
-              {(c.status === 'open' || c.status === 'in-progress') && (
+              {(r.status === 'open' || r.status === 'assigned' || r.status === 'in_progress') && (
                 <div className="mt-3 flex gap-2">
-                  {c.status === 'open' && (
+                  {r.status === 'open' && (
                     <button
-                      onClick={() => handleUpdateStatus(c.id, 'in-progress')}
+                      onClick={() => handleUpdateStatus(r.id, 'assigned')}
                       className="min-h-[44px] rounded-md bg-amber-50 px-4 text-sm font-medium text-amber-700 hover:bg-amber-100"
                     >
-                      In Progress
+                      Assign
                     </button>
                   )}
-                  <button
-                    onClick={() => handleUpdateStatus(c.id, 'resolved')}
-                    className="min-h-[44px] rounded-md bg-green-50 px-4 text-sm font-medium text-green-700 hover:bg-green-100"
-                  >
-                    Resolve
-                  </button>
+                  {r.status === 'assigned' && (
+                    <button
+                      onClick={() => handleUpdateStatus(r.id, 'in_progress')}
+                      className="min-h-[44px] rounded-md bg-blue-50 px-4 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                    >
+                      Start
+                    </button>
+                  )}
+                  {(r.status === 'assigned' || r.status === 'in_progress') && (
+                    <button
+                      onClick={() => handleUpdateStatus(r.id, 'resolved')}
+                      className="min-h-[44px] rounded-md bg-green-50 px-4 text-sm font-medium text-green-700 hover:bg-green-100"
+                    >
+                      Resolve
+                    </button>
+                  )}
                 </div>
               )}
             </div>

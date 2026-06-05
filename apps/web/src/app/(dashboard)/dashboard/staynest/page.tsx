@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Card, CardBody, StatusBadge, CountUp, FadeIn } from '@micronest/ui'
 import { createServerClient } from '@micronest/auth'
-import { getUserOrganizations, isOrganizationEmpty, listVisitors, listComplaints, countComplaintsByStatus, countResidentsByStatus, listRooms, countPendingRent, countCollectedRent, countOverdueRent, countPendingRecords, countPublishedNotices } from '@micronest/db'
+import { getUserOrganizations, isOrganizationEmpty, listVisitors, listMaintenanceRequests, countMaintenanceRequestsByStatus, countResidentsByStatus, listRooms, getRevenueStats, listActiveAnnouncements } from '@micronest/db'
 import { DemoContent } from './demo-content'
 
 export const metadata: Metadata = {
@@ -14,10 +14,12 @@ const statusVariant: Record<string, 'info' | 'success'> = {
   'checked-out': 'success',
 }
 
-const complaintVariant: Record<string, 'info' | 'warning' | 'success'> = {
+const complaintVariant: Record<string, 'info' | 'warning' | 'success' | 'default'> = {
   open: 'info',
-  'in-progress': 'warning',
+  assigned: 'warning',
+  in_progress: 'warning',
   resolved: 'success',
+  closed: 'default',
 }
 
 function formatTime(iso: string) {
@@ -57,16 +59,13 @@ export default async function StayNestOverviewPage() {
   }
 
   let recentVisitors: { id: string; name: string; room_number: string; purpose: string; status: string; check_in_at: string }[] = []
-  let recentComplaints: { id: string; title: string; room_number: string; raised_by: string; status: string; created_at: string }[] = []
+  let recentComplaints: { id: string; title: string; status: string; created_at: string }[] = []
   let openComplaintsCount = 0
   let activeResidentsCount = 0
   let totalRooms = 0
   let totalCapacity = 0
   let totalOccupied = 0
-  let rentDue = 0
-  let rentCollected = 0
-  let rentOverdue = 0
-  let rentPendingCount = 0
+  let rentStats = { monthlyRevenue: 0, pendingRevenue: 0, overdueRevenue: 0, collectionRate: 0, totalCollected: 0, totalDue: 0 }
   let publishedNoticesCount = 0
   let visitorsTodayCount = 0
 
@@ -80,10 +79,10 @@ export default async function StayNestOverviewPage() {
       (v) => new Date(v.check_in_at) >= todayStart
     ).length
 
-    const allComplaints = await listComplaints(supabase, orgId)
+    const allComplaints = await listMaintenanceRequests(supabase, orgId)
     recentComplaints = allComplaints.slice(0, 3)
 
-    const complaintCounts = await countComplaintsByStatus(supabase, orgId)
+    const complaintCounts = await countMaintenanceRequestsByStatus(supabase, orgId)
     openComplaintsCount = complaintCounts.open
 
     const residentCounts = await countResidentsByStatus(supabase, orgId)
@@ -92,20 +91,14 @@ export default async function StayNestOverviewPage() {
     const rooms = await listRooms(supabase, orgId)
     totalRooms = rooms.length
     totalCapacity = rooms.reduce((sum, r) => sum + r.capacity, 0)
-    totalOccupied = rooms.reduce((sum, r) => sum + r.occupied_count, 0)
+    totalOccupied = rooms.reduce((sum, r) => sum + r.occupied_beds, 0)
 
-    const [pending, collected, overdue, pendingRecs, publishedNotices] = await Promise.all([
-      countPendingRent(supabase, orgId),
-      countCollectedRent(supabase, orgId),
-      countOverdueRent(supabase, orgId),
-      countPendingRecords(supabase, orgId),
-      countPublishedNotices(supabase, orgId),
+    const [stats, activeAnnouncements] = await Promise.all([
+      getRevenueStats(supabase, orgId),
+      listActiveAnnouncements(supabase, orgId),
     ])
-    rentDue = pending + overdue
-    rentCollected = collected
-    rentOverdue = overdue
-    rentPendingCount = pendingRecs
-    publishedNoticesCount = publishedNotices
+    rentStats = stats
+    publishedNoticesCount = activeAnnouncements.length
   }
 
   const availableRooms = totalRooms - totalOccupied
@@ -149,23 +142,32 @@ export default async function StayNestOverviewPage() {
           <Card>
             <CardBody>
               <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-                Pending Rent
+                Monthly Revenue
               </p>
-              <p className="mt-1 text-2xl font-bold text-red-600">
-                ₹<CountUp end={rentDue} />
+              <p className="mt-1 text-2xl font-bold text-green-600">
+                ₹<CountUp end={rentStats.monthlyRevenue} />
               </p>
-              <p className="mt-1 text-xs text-gray-500">
-                <CountUp end={rentPendingCount} /> records
-              </p>
+              <p className="mt-1 text-xs text-gray-500">Collected this month</p>
             </CardBody>
           </Card>
           <Card>
             <CardBody>
               <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-                Overdue Rent
+                Pending Revenue
               </p>
-              <p className="mt-1 text-2xl font-bold text-red-700">
-                ₹<CountUp end={rentOverdue} />
+              <p className="mt-1 text-2xl font-bold text-amber-600">
+                ₹<CountUp end={rentStats.pendingRevenue} />
+              </p>
+              <p className="mt-1 text-xs text-gray-500">Awaiting collection</p>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Overdue Revenue
+              </p>
+              <p className="mt-1 text-2xl font-bold text-red-600">
+                ₹<CountUp end={rentStats.overdueRevenue} />
               </p>
               <p className="mt-1 text-xs text-gray-500">Needs immediate action</p>
             </CardBody>
@@ -173,7 +175,18 @@ export default async function StayNestOverviewPage() {
           <Card>
             <CardBody>
               <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-                Open Complaints
+                Collection Rate
+              </p>
+              <p className="mt-1 text-2xl font-bold text-blue-600">
+                <CountUp end={rentStats.collectionRate} />%
+              </p>
+              <p className="mt-1 text-xs text-gray-500">Overall collection</p>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Open Maintenance
               </p>
               <p className="mt-1 text-2xl font-bold text-amber-600">
                 <CountUp end={openComplaintsCount} />
@@ -206,12 +219,12 @@ export default async function StayNestOverviewPage() {
           <Card>
             <CardBody>
               <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-                Rent Collected
+                Total Collected
               </p>
               <p className="mt-1 text-2xl font-bold text-green-600">
-                ₹<CountUp end={rentCollected} />
+                ₹<CountUp end={rentStats.totalCollected} />
               </p>
-              <p className="mt-1 text-xs text-gray-500">Total collected</p>
+              <p className="mt-1 text-xs text-gray-500">Lifetime collections</p>
             </CardBody>
           </Card>
         </div>
@@ -274,7 +287,7 @@ export default async function StayNestOverviewPage() {
         <Card padding="none">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
             <h3 className="text-sm font-semibold text-gray-900">
-              Recent Complaints
+              Recent Maintenance
             </h3>
             <Link
               href="/dashboard/staynest/complaints"
@@ -299,13 +312,12 @@ export default async function StayNestOverviewPage() {
                       {complaint.title}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Room {complaint.room_number} &middot;{' '}
-                      {complaint.raised_by}
+                      Status: {complaint.status}
                     </p>
                   </div>
                   <div className="text-right">
                     <StatusBadge
-                      variant={complaintVariant[complaint.status]}
+                      variant={complaintVariant[complaint.status] ?? 'default'}
                     >
                       {complaint.status.charAt(0).toUpperCase() +
                         complaint.status.slice(1)}
@@ -341,7 +353,7 @@ export default async function StayNestOverviewPage() {
           href="/dashboard/staynest/complaints"
           className="min-h-[44px] inline-flex items-center rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
         >
-          ← Raise a complaint
+          ← Raise request
         </Link>
           <Link
             href="/dashboard/staynest/rent"
@@ -353,7 +365,7 @@ export default async function StayNestOverviewPage() {
             href="/dashboard/staynest/notices"
             className="min-h-[44px] inline-flex items-center rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
           >
-            ← View notices
+            ← View announcements
           </Link>
         </div>
       </FadeIn>

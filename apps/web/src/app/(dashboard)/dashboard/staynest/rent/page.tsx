@@ -5,10 +5,7 @@ import {
   listRentRecords,
   listResidents,
   listRooms,
-  countPendingRent,
-  countCollectedRent,
-  countOverdueRent,
-  countPendingRecords,
+  getRevenueStats,
 } from '@micronest/db'
 import { RentContent } from './rent-content'
 
@@ -30,10 +27,7 @@ export default async function RentPage() {
         residents={[]}
         rooms={[]}
         organizationId={null}
-        totalDue={0}
-        collected={0}
-        overdue={0}
-        pendingCount={0}
+        stats={{ monthlyRevenue: 0, pendingRevenue: 0, overdueRevenue: 0, collectionRate: 0, totalCollected: 0, totalDue: 0 }}
       />
     )
   }
@@ -47,28 +41,19 @@ export default async function RentPage() {
         residents={[]}
         rooms={[]}
         organizationId={null}
-        totalDue={0}
-        collected={0}
-        overdue={0}
-        pendingCount={0}
+        stats={{ monthlyRevenue: 0, pendingRevenue: 0, overdueRevenue: 0, collectionRate: 0, totalCollected: 0, totalDue: 0 }}
       />
     )
   }
 
   const orgId = orgs[0].id
 
-  const [records, residents, rooms, pendingRent, collected, overdueAmt, pendingRecs] =
-    await Promise.all([
-      listRentRecords(supabase, orgId),
-      listResidents(supabase, orgId),
-      listRooms(supabase, orgId),
-      countPendingRent(supabase, orgId),
-      countCollectedRent(supabase, orgId),
-      countOverdueRent(supabase, orgId),
-      countPendingRecords(supabase, orgId),
-    ])
-
-  const totalDue = pendingRent + overdueAmt
+  const [records, residents, rooms, stats] = await Promise.all([
+    listRentRecords(supabase, orgId),
+    listResidents(supabase, orgId),
+    listRooms(supabase, orgId),
+    getRevenueStats(supabase, orgId),
+  ])
 
   return (
     <RentContent
@@ -76,10 +61,7 @@ export default async function RentPage() {
       residents={residents}
       rooms={rooms}
       organizationId={orgId}
-      totalDue={totalDue}
-      collected={collected}
-      overdue={overdueAmt}
-      pendingCount={pendingRecs}
+      stats={stats}
     />
   )
 }

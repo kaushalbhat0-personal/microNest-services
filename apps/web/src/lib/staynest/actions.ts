@@ -5,71 +5,70 @@ import { createServerClient } from '@micronest/auth'
 import {
   createVisitor as dbCreateVisitor,
   checkOutVisitor as dbCheckOutVisitor,
-  createComplaint as dbCreateComplaint,
-  updateComplaintStatus as dbUpdateComplaintStatus,
+  createMaintenanceRequest as dbCreateMaintenanceRequest,
+  updateMaintenanceRequestStatus as dbUpdateMaintenanceRequestStatus,
+  assignMaintenanceRequest as dbAssignMaintenanceRequest,
   createResident as dbCreateResident,
   updateResident as dbUpdateResident,
-  deactivateResident as dbDeactivateResident,
+  checkoutResident as dbCheckoutResident,
   createRoom as dbCreateRoom,
   updateRoom as dbUpdateRoom,
-  deactivateRoom as dbDeactivateRoom,
+  softDeleteRoom as dbSoftDeleteRoom,
   createRentRecord as dbCreateRentRecord,
   markRentPaid as dbMarkRentPaid,
-  createNotice as dbCreateNotice,
-  updateNotice as dbUpdateNotice,
-  publishNotice as dbPublishNotice,
-  archiveNotice as dbArchiveNotice,
+  generateRentForMonth as dbGenerateRentForMonth,
+  recordPayment as dbRecordPayment,
+  createAnnouncement as dbCreateAnnouncement,
+  updateAnnouncement as dbUpdateAnnouncement,
+  deleteAnnouncement as dbDeleteAnnouncement,
+  updateRoomOccupancy,
   createAuditLog,
   isOrganizationEmpty,
   seedDemoData as dbSeedDemoData,
 } from '@micronest/db'
+
+async function getOrgId(supabase: ReturnType<typeof createServerClient> extends Promise<infer T> ? T : never) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .single()
+  return data?.organization_id ?? null
+}
 
 export async function createVisitor(
   _prev: { error?: string | null; success?: boolean },
   formData: FormData
 ) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated', success: false }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
-
-  if (!orgs) return { error: 'No organization found', success: false }
-
-  const name = formData.get('name') as string
-  const phone = formData.get('phone') as string
-  const purpose = formData.get('purpose') as string
-  const roomNumber = formData.get('room_number') as string
-
-  if (!name?.trim() || !phone?.trim() || !purpose?.trim()) {
-    return { error: 'Name, phone, and purpose are required.', success: false }
-  }
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
 
   const visitor = await dbCreateVisitor(
-    supabase,
-    orgs.organization_id,
-    { name, phone, purpose, room_number: roomNumber ?? '' },
+    supabase, orgId,
+    {
+      visitor_name: formData.get('visitor_name') as string,
+      phone: formData.get('phone') as string,
+      purpose: formData.get('purpose') as string,
+      resident_id: formData.get('resident_id') as string || null,
+      notes: formData.get('notes') as string || null,
+    },
     user.id
   )
-
   if (!visitor) return { error: 'Failed to log visitor.', success: false }
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'visitor.created',
-    entity_type: 'staynest_visitor',
-    entity_id: visitor.id,
+    organization_id: orgId, user_id: user.id, action: 'visitor.created',
+    entity_type: 'staynest_visitor', entity_id: visitor.id,
   })
-
   revalidatePath('/dashboard/staynest/visitors')
   revalidatePath('/dashboard/staynest')
   return { error: null, success: true }
@@ -77,121 +76,96 @@ export async function createVisitor(
 
 export async function checkOutVisitor(id: string) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
 
-  if (!orgs) return { error: 'No organization found' }
-
-  const visitor = await dbCheckOutVisitor(supabase, orgs.organization_id, id, user.id)
-
+  const visitor = await dbCheckOutVisitor(supabase, orgId, id)
   if (!visitor) return { error: 'Failed to check out visitor.' }
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'visitor.checked_out',
-    entity_type: 'staynest_visitor',
-    entity_id: id,
+    organization_id: orgId, user_id: user.id, action: 'visitor.checked_out',
+    entity_type: 'staynest_visitor', entity_id: visitor.id,
   })
-
   revalidatePath('/dashboard/staynest/visitors')
   revalidatePath('/dashboard/staynest')
 }
 
-export async function createComplaint(
+export async function createMaintenanceRequest(
   _prev: { error?: string | null; success?: boolean },
   formData: FormData
 ) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated', success: false }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
 
-  if (!orgs) return { error: 'No organization found', success: false }
-
-  const title = formData.get('title') as string
-  const description = formData.get('description') as string
-  const raisedBy = formData.get('raised_by') as string
-  const roomNumber = formData.get('room_number') as string
-  const priority = formData.get('priority') as 'low' | 'medium' | 'high'
-
-  if (!title?.trim() || !description?.trim() || !raisedBy?.trim()) {
-    return { error: 'Title, description, and raised by are required.', success: false }
-  }
-
-  const complaint = await dbCreateComplaint(
-    supabase,
-    orgs.organization_id,
-    { title, description, raised_by: raisedBy, room_number: roomNumber ?? '', priority: priority ?? 'medium' },
+  const req = await dbCreateMaintenanceRequest(
+    supabase, orgId,
+    {
+      title: formData.get('title') as string,
+      description: formData.get('description') as string,
+      category: formData.get('category') as string,
+      priority: formData.get('priority') as string || undefined,
+      resident_id: formData.get('resident_id') as string || null,
+      room_id: formData.get('room_id') as string || null,
+    },
     user.id
   )
-
-  if (!complaint) return { error: 'Failed to raise complaint.', success: false }
+  if (!req) return { error: 'Failed to create request.', success: false }
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'complaint.created',
-    entity_type: 'staynest_complaint',
-    entity_id: complaint.id,
+    organization_id: orgId, user_id: user.id, action: 'maintenance.created',
+    entity_type: 'staynest_maintenance_request', entity_id: req.id,
   })
-
-  revalidatePath('/dashboard/staynest/complaints')
+  revalidatePath('/dashboard/staynest/maintenance')
   revalidatePath('/dashboard/staynest')
   return { error: null, success: true }
 }
 
-export async function updateComplaintStatus(id: string, status: 'open' | 'in-progress' | 'resolved') {
+export async function updateMaintenanceStatus(id: string, status: string) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
 
-  if (!orgs) return { error: 'No organization found' }
+  const req = await dbUpdateMaintenanceRequestStatus(
+    supabase, orgId, id, status as any, user.id
+  )
+  if (!req) return { error: 'Failed to update status.' }
 
-  const complaint = await dbUpdateComplaintStatus(supabase, orgs.organization_id, id, status, user.id)
-
-  if (!complaint) return { error: 'Failed to update complaint status.' }
-
-  const auditAction = status === 'resolved' ? 'complaint.resolved' : 'complaint.status_changed'
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: auditAction,
-    entity_type: 'staynest_complaint',
-    entity_id: id,
-    metadata: { new_status: status },
+    organization_id: orgId, user_id: user.id, action: 'maintenance.updated',
+    entity_type: 'staynest_maintenance_request', entity_id: req.id,
+    metadata: { status },
   })
+  revalidatePath('/dashboard/staynest/maintenance')
+  revalidatePath('/dashboard/staynest')
+}
 
-  revalidatePath('/dashboard/staynest/complaints')
+export async function assignMaintenanceRequest(id: string, assignedTo: string) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const req = await dbAssignMaintenanceRequest(supabase, orgId, id, assignedTo)
+  if (!req) return { error: 'Failed to assign request.' }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: 'maintenance.assigned',
+    entity_type: 'staynest_maintenance_request', entity_id: req.id,
+    metadata: { assigned_to: assignedTo },
+  })
+  revalidatePath('/dashboard/staynest/maintenance')
   revalidatePath('/dashboard/staynest')
 }
 
@@ -200,48 +174,40 @@ export async function createResident(
   formData: FormData
 ) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated', success: false }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
-
-  if (!orgs) return { error: 'No organization found', success: false }
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
 
   const resident = await dbCreateResident(
-    supabase,
-    orgs.organization_id,
+    supabase, orgId,
     {
       full_name: formData.get('full_name') as string,
       phone: formData.get('phone') as string,
       email: formData.get('email') as string || null,
       gender: formData.get('gender') as string || null,
-      guardian_name: formData.get('guardian_name') as string || null,
-      guardian_phone: formData.get('guardian_phone') as string || null,
-      room_number: formData.get('room_number') as string,
-      joining_date: formData.get('joining_date') as string,
-      notes: formData.get('notes') as string || null,
+      emergency_contact_name: formData.get('emergency_contact_name') as string || null,
+      emergency_contact_phone: formData.get('emergency_contact_phone') as string || null,
+      id_proof_type: formData.get('id_proof_type') as string || null,
+      id_proof_number: formData.get('id_proof_number') as string || null,
+      room_id: formData.get('room_id') as string || null,
+      bed_number: parseInt(formData.get('bed_number') as string) || null,
+      check_in_date: formData.get('check_in_date') as string,
     },
     user.id
   )
 
   if (!resident) return { error: 'Failed to create resident.', success: false }
 
-  await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'resident.created',
-    entity_type: 'staynest_resident',
-    entity_id: resident.id,
-  })
+  if (resident.room_id) {
+    await updateRoomOccupancy(supabase, orgId, resident.room_id)
+  }
 
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: 'resident.created',
+    entity_type: 'staynest_resident', entity_id: resident.id,
+  })
   revalidatePath('/dashboard/staynest/residents')
   revalidatePath('/dashboard/staynest')
   return { error: null, success: true }
@@ -252,85 +218,63 @@ export async function updateResident(
   formData: FormData
 ) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated', success: false }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
-
-  if (!orgs) return { error: 'No organization found', success: false }
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
 
   const id = formData.get('id') as string
   if (!id) return { error: 'Resident ID is required.', success: false }
 
-  const resident = await dbUpdateResident(
-    supabase,
-    orgs.organization_id,
-    id,
-    {
-      full_name: formData.get('full_name') as string,
-      phone: formData.get('phone') as string,
-      email: formData.get('email') as string || null,
-      gender: formData.get('gender') as string || null,
-      guardian_name: formData.get('guardian_name') as string || null,
-      guardian_phone: formData.get('guardian_phone') as string || null,
-      room_number: formData.get('room_number') as string,
-      joining_date: formData.get('joining_date') as string,
-      notes: formData.get('notes') as string || null,
-    }
-  )
+  const resident = await dbUpdateResident(supabase, orgId, id, {
+    full_name: formData.get('full_name') as string,
+    phone: formData.get('phone') as string,
+    email: formData.get('email') as string || null,
+    gender: formData.get('gender') as string || null,
+    emergency_contact_name: formData.get('emergency_contact_name') as string || null,
+    emergency_contact_phone: formData.get('emergency_contact_phone') as string || null,
+    id_proof_type: formData.get('id_proof_type') as string || null,
+    id_proof_number: formData.get('id_proof_number') as string || null,
+    room_id: formData.get('room_id') as string || null,
+    bed_number: parseInt(formData.get('bed_number') as string) || null,
+    check_in_date: formData.get('check_in_date') as string,
+  })
 
   if (!resident) return { error: 'Failed to update resident.', success: false }
 
-  await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'resident.updated',
-    entity_type: 'staynest_resident',
-    entity_id: id,
-  })
+  if (resident.room_id) {
+    await updateRoomOccupancy(supabase, orgId, resident.room_id)
+  }
 
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: 'resident.updated',
+    entity_type: 'staynest_resident', entity_id: resident.id,
+  })
   revalidatePath('/dashboard/staynest/residents')
   revalidatePath('/dashboard/staynest')
   return { error: null, success: true }
 }
 
-export async function deactivateResident(id: string) {
+export async function checkoutResident(id: string) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
 
-  if (!orgs) return { error: 'No organization found' }
+  const resident = await dbCheckoutResident(supabase, orgId, id)
+  if (!resident) return { error: 'Failed to check out resident.' }
 
-  const resident = await dbDeactivateResident(supabase, orgs.organization_id, id)
-
-  if (!resident) return { error: 'Failed to deactivate resident.' }
+  if (resident.room_id) {
+    await updateRoomOccupancy(supabase, orgId, resident.room_id)
+  }
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'resident.deactivated',
-    entity_type: 'staynest_resident',
-    entity_id: id,
+    organization_id: orgId, user_id: user.id, action: 'resident.checked_out',
+    entity_type: 'staynest_resident', entity_id: resident.id,
   })
-
   revalidatePath('/dashboard/staynest/residents')
   revalidatePath('/dashboard/staynest')
 }
@@ -340,45 +284,25 @@ export async function createRoom(
   formData: FormData
 ) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated', success: false }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
 
-  if (!orgs) return { error: 'No organization found', success: false }
-
-  const room = await dbCreateRoom(
-    supabase,
-    orgs.organization_id,
-    {
-      room_number: formData.get('room_number') as string,
-      room_type: formData.get('room_type') as string || null,
-      capacity: parseInt(formData.get('capacity') as string) || 1,
-      occupied_count: parseInt(formData.get('occupied_count') as string) || 0,
-      monthly_rent: parseInt(formData.get('monthly_rent') as string) || 0,
-      notes: formData.get('notes') as string || null,
-    },
-    user.id
-  )
+  const room = await dbCreateRoom(supabase, orgId, {
+    room_number: formData.get('room_number') as string,
+    floor: parseInt(formData.get('floor') as string) || null,
+    capacity: parseInt(formData.get('capacity') as string) || 1,
+    rent_per_bed: parseInt(formData.get('rent_per_bed') as string) || 0,
+  }, user.id)
 
   if (!room) return { error: 'Failed to create room.', success: false }
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'room.created',
-    entity_type: 'staynest_room',
-    entity_id: room.id,
+    organization_id: orgId, user_id: user.id, action: 'room.created',
+    entity_type: 'staynest_room', entity_id: room.id,
   })
-
   revalidatePath('/dashboard/staynest/rooms')
   revalidatePath('/dashboard/staynest')
   return { error: null, success: true }
@@ -389,83 +313,48 @@ export async function updateRoom(
   formData: FormData
 ) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated', success: false }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
-
-  if (!orgs) return { error: 'No organization found', success: false }
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
 
   const id = formData.get('id') as string
   if (!id) return { error: 'Room ID is required.', success: false }
 
-  const room = await dbUpdateRoom(
-    supabase,
-    orgs.organization_id,
-    id,
-    {
-      room_number: formData.get('room_number') as string,
-      room_type: formData.get('room_type') as string || null,
-      capacity: parseInt(formData.get('capacity') as string) || 1,
-      occupied_count: parseInt(formData.get('occupied_count') as string) || 0,
-      monthly_rent: parseInt(formData.get('monthly_rent') as string) || 0,
-      status: formData.get('status') as 'active' | 'inactive' | 'maintenance' | undefined,
-      notes: formData.get('notes') as string || null,
-    }
-  )
+  const room = await dbUpdateRoom(supabase, orgId, id, {
+    room_number: formData.get('room_number') as string,
+    floor: parseInt(formData.get('floor') as string) || null,
+    capacity: parseInt(formData.get('capacity') as string) || 1,
+    rent_per_bed: parseInt(formData.get('rent_per_bed') as string) || 0,
+    status: formData.get('status') as string || undefined,
+  })
 
   if (!room) return { error: 'Failed to update room.', success: false }
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'room.updated',
-    entity_type: 'staynest_room',
-    entity_id: id,
+    organization_id: orgId, user_id: user.id, action: 'room.updated',
+    entity_type: 'staynest_room', entity_id: room.id,
   })
-
   revalidatePath('/dashboard/staynest/rooms')
   revalidatePath('/dashboard/staynest')
   return { error: null, success: true }
 }
 
-export async function deactivateRoom(id: string) {
+export async function deleteRoom(id: string) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
 
-  if (!orgs) return { error: 'No organization found' }
-
-  const room = await dbDeactivateRoom(supabase, orgs.organization_id, id)
-
-  if (!room) return { error: 'Failed to deactivate room.' }
+  await dbSoftDeleteRoom(supabase, orgId, id)
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'room.deactivated',
-    entity_type: 'staynest_room',
-    entity_id: id,
+    organization_id: orgId, user_id: user.id, action: 'room.deleted',
+    entity_type: 'staynest_room', entity_id: id,
   })
-
   revalidatePath('/dashboard/staynest/rooms')
   revalidatePath('/dashboard/staynest')
 }
@@ -475,278 +364,231 @@ export async function createRentRecord(
   formData: FormData
 ) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated', success: false }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
 
-  if (!orgs) return { error: 'No organization found', success: false }
-
-  const record = await dbCreateRentRecord(
-    supabase,
-    orgs.organization_id,
-    {
-      resident_id: formData.get('resident_id') as string,
-      room_id: formData.get('room_id') as string || null,
-      billing_month: parseInt(formData.get('billing_month') as string) || new Date().getMonth() + 1,
-      billing_year: parseInt(formData.get('billing_year') as string) || new Date().getFullYear(),
-      amount: parseInt(formData.get('amount') as string) || 0,
-      due_date: formData.get('due_date') as string,
-      notes: formData.get('notes') as string || null,
-    },
-    user.id
-  )
+  const rentAmount = parseInt(formData.get('amount') as string) || 0
+  const record = await dbCreateRentRecord(supabase, orgId, {
+    resident_id: formData.get('resident_id') as string,
+    room_id: formData.get('room_id') as string || null,
+    billing_month: parseInt(formData.get('billing_month') as string) || new Date().getMonth() + 1,
+    billing_year: parseInt(formData.get('billing_year') as string) || new Date().getFullYear(),
+    rent_amount: rentAmount,
+    due_date: formData.get('due_date') as string,
+    notes: formData.get('notes') as string || null,
+  }, user.id)
 
   if (!record) return { error: 'Failed to create rent record.', success: false }
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'rent.created',
-    entity_type: 'staynest_rent_record',
-    entity_id: record.id,
+    organization_id: orgId, user_id: user.id, action: 'rent.created',
+    entity_type: 'staynest_rent_record', entity_id: record.id,
   })
-
   revalidatePath('/dashboard/staynest/rent')
   revalidatePath('/dashboard/staynest')
   return { error: null, success: true }
 }
 
-export async function markRentPaid(
-  id: string,
-  paymentMethod: 'cash' | 'upi' | 'bank_transfer' | 'other'
-) {
-  const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
-
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
-
-  if (!orgs) return { error: 'No organization found' }
-
-  const record = await dbMarkRentPaid(supabase, orgs.organization_id, id, paymentMethod)
-
-  if (!record) return { error: 'Failed to mark rent as paid.' }
-
-  await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'rent.paid',
-    entity_type: 'staynest_rent_record',
-    entity_id: id,
-  })
-
-  revalidatePath('/dashboard/staynest/rent')
-  revalidatePath('/dashboard/staynest')
-}
-
-export async function createNotice(
+export async function generateRent(
   _prev: { error?: string | null; success?: boolean },
   formData: FormData
 ) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated', success: false }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
 
-  if (!orgs) return { error: 'No organization found', success: false }
+  const month = parseInt(formData.get('month') as string) || new Date().getMonth() + 1
+  const year = parseInt(formData.get('year') as string) || new Date().getFullYear()
 
-  const notice = await dbCreateNotice(
-    supabase,
-    orgs.organization_id,
-    {
-      title: formData.get('title') as string,
-      content: formData.get('content') as string,
-    },
-    user.id
-  )
+  const result = await dbGenerateRentForMonth(supabase, orgId, month, year, user.id)
 
-  if (!notice) return { error: 'Failed to create notice.', success: false }
+  if (result.errors.length > 0) {
+    return { error: result.errors.join('. '), success: false }
+  }
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'notice.created',
-    entity_type: 'staynest_notice',
-    entity_id: notice.id,
+    organization_id: orgId, user_id: user.id, action: 'rent.generated',
+    entity_type: 'staynest_rent_record',
+    entity_id: orgId,
+    metadata: { month, year, count: result.created },
   })
-
-  revalidatePath('/dashboard/staynest/notices')
+  revalidatePath('/dashboard/staynest/rent')
   revalidatePath('/dashboard/staynest')
   return { error: null, success: true }
 }
 
-export async function updateNotice(
+export async function recordPaymentAction(
+  _prev: { error?: string | null; success?: boolean; receipt?: any },
+  formData: FormData
+) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated', success: false }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
+
+  const amount = parseInt(formData.get('amount') as string) || 0
+  if (amount <= 0) return { error: 'Invalid payment amount.', success: false }
+
+  const paymentMethod = formData.get('payment_method') as 'cash' | 'upi' | 'bank_transfer' | 'other'
+  if (!['cash', 'upi', 'bank_transfer', 'other'].includes(paymentMethod)) {
+    return { error: 'Invalid payment method.', success: false }
+  }
+
+  const result = await dbRecordPayment(supabase, orgId, {
+    rent_record_id: formData.get('rent_record_id') as string,
+    amount,
+    payment_method: paymentMethod,
+    payment_date: (formData.get('payment_date') as string) || undefined,
+    notes: (formData.get('notes') as string) || null,
+  }, user.id)
+
+  if (result.error) return { error: result.error, success: false }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: 'rent.payment_recorded',
+    entity_type: 'staynest_rent_record',
+    entity_id: formData.get('rent_record_id') as string,
+    metadata: { amount, payment_method: paymentMethod, receipt_number: result.receipt?.receipt_number },
+  })
+  revalidatePath('/dashboard/staynest/rent')
+  revalidatePath('/dashboard/staynest')
+  return { error: null, success: true, receipt: result.receipt }
+}
+
+export async function createAnnouncement(
   _prev: { error?: string | null; success?: boolean },
   formData: FormData
 ) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated', success: false }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
 
-  if (!orgs) return { error: 'No organization found', success: false }
+  const announcement = await dbCreateAnnouncement(supabase, orgId, {
+    title: formData.get('title') as string,
+    message: formData.get('message') as string,
+    priority: formData.get('priority') as string || undefined,
+    publish_date: formData.get('publish_date') as string || undefined,
+    expiry_date: formData.get('expiry_date') as string || null,
+  }, user.id)
+
+  if (!announcement) return { error: 'Failed to create announcement.', success: false }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: 'announcement.created',
+    entity_type: 'staynest_announcement', entity_id: announcement.id,
+  })
+  revalidatePath('/dashboard/staynest/announcements')
+  revalidatePath('/dashboard/staynest')
+  return { error: null, success: true }
+}
+
+export async function updateAnnouncement(
+  _prev: { error?: string | null; success?: boolean },
+  formData: FormData
+) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated', success: false }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
 
   const id = formData.get('id') as string
-  if (!id) return { error: 'Notice ID is required.', success: false }
+  if (!id) return { error: 'Announcement ID is required.', success: false }
 
-  const notice = await dbUpdateNotice(
-    supabase,
-    orgs.organization_id,
-    id,
-    {
-      title: formData.get('title') as string,
-      content: formData.get('content') as string,
-    }
-  )
-
-  if (!notice) return { error: 'Failed to update notice.', success: false }
-
-  await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'notice.updated',
-    entity_type: 'staynest_notice',
-    entity_id: id,
+  const announcement = await dbUpdateAnnouncement(supabase, orgId, id, {
+    title: formData.get('title') as string,
+    message: formData.get('message') as string,
+    priority: formData.get('priority') as string || undefined,
+    publish_date: formData.get('publish_date') as string || undefined,
+    expiry_date: formData.get('expiry_date') as string || null,
   })
 
-  revalidatePath('/dashboard/staynest/notices')
+  if (!announcement) return { error: 'Failed to update announcement.', success: false }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: 'announcement.updated',
+    entity_type: 'staynest_announcement', entity_id: announcement.id,
+  })
+  revalidatePath('/dashboard/staynest/announcements')
   revalidatePath('/dashboard/staynest')
   return { error: null, success: true }
 }
 
-export async function publishNotice(id: string) {
+export async function deleteAnnouncement(id: string) {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
 
-  if (!orgs) return { error: 'No organization found' }
-
-  const notice = await dbPublishNotice(supabase, orgs.organization_id, id)
-
-  if (!notice) return { error: 'Failed to publish notice.' }
+  await dbDeleteAnnouncement(supabase, orgId, id)
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'notice.published',
-    entity_type: 'staynest_notice',
-    entity_id: id,
+    organization_id: orgId, user_id: user.id, action: 'announcement.deleted',
+    entity_type: 'staynest_announcement', entity_id: id,
   })
-
-  revalidatePath('/dashboard/staynest/notices')
+  revalidatePath('/dashboard/staynest/announcements')
   revalidatePath('/dashboard/staynest')
 }
 
-export async function archiveNotice(id: string) {
+export async function markRentPaid(id: string, paymentMethod: 'cash' | 'upi' | 'bank_transfer' | 'other') {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: orgs } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .single()
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
 
-  if (!orgs) return { error: 'No organization found' }
-
-  const notice = await dbArchiveNotice(supabase, orgs.organization_id, id)
-
-  if (!notice) return { error: 'Failed to archive notice.' }
+  await dbMarkRentPaid(supabase, orgId, id, paymentMethod)
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'notice.archived',
-    entity_type: 'staynest_notice',
-    entity_id: id,
+    organization_id: orgId, user_id: user.id, action: 'rent.marked_paid',
+    entity_type: 'staynest_rent_record', entity_id: id,
   })
-
-  revalidatePath('/dashboard/staynest/notices')
+  revalidatePath('/dashboard/staynest/rent')
   revalidatePath('/dashboard/staynest')
 }
 
 export async function seedDemoData() {
   const supabase = await createServerClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: orgs } = await supabase
+  const { data } = await supabase
     .from('organization_members')
     .select('organization_id')
     .eq('user_id', user.id)
     .limit(1)
     .single()
 
-  if (!orgs) return { error: 'No organization found' }
+  if (!data) return { error: 'No organization found' }
 
-  const empty = await isOrganizationEmpty(supabase, orgs.organization_id)
+  const empty = await isOrganizationEmpty(supabase, data.organization_id)
   if (!empty) return { error: 'Organization already has data. Demo data can only be seeded on an empty organization.' }
 
   try {
-    await dbSeedDemoData(supabase, orgs.organization_id, user.id)
+    await dbSeedDemoData(supabase, data.organization_id, user.id)
   } catch {
     return { error: 'Failed to seed demo data. Please try again.' }
   }
 
   await createAuditLog(supabase, {
-    organization_id: orgs.organization_id,
-    user_id: user.id,
-    action: 'demo.seeded',
-    entity_type: 'organization',
-    entity_id: orgs.organization_id,
+    organization_id: data.organization_id, user_id: user.id,
+    action: 'demo.seeded', entity_type: 'organization',
+    entity_id: data.organization_id,
     metadata: { note: 'Demo data seeded for StayNest' },
   })
 

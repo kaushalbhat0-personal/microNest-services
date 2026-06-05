@@ -2,13 +2,20 @@ import type { DBClient, StayNestRoom } from '../types'
 
 export async function listRooms(
   supabase: DBClient,
-  organizationId: string
+  organizationId: string,
+  options?: { status?: string }
 ): Promise<StayNestRoom[]> {
-  const { data } = await supabase
+  let query = supabase
     .from('staynest_rooms')
     .select('*')
     .eq('organization_id', organizationId)
-    .order('room_number', { ascending: true })
+    .is('deleted_at', null)
+
+  if (options?.status) {
+    query = query.eq('status', options.status)
+  }
+
+  const { data } = await query.order('room_number', { ascending: true })
   return data ?? []
 }
 
@@ -31,11 +38,9 @@ export async function createRoom(
   organizationId: string,
   input: {
     room_number: string
-    room_type?: string | null
+    floor?: number | null
     capacity: number
-    occupied_count?: number
-    monthly_rent: number
-    notes?: string | null
+    rent_per_bed: number
   },
   userId: string
 ): Promise<StayNestRoom | null> {
@@ -44,11 +49,9 @@ export async function createRoom(
     .insert({
       organization_id: organizationId,
       room_number: input.room_number,
-      room_type: input.room_type ?? null,
+      floor: input.floor ?? null,
       capacity: input.capacity,
-      occupied_count: input.occupied_count ?? 0,
-      monthly_rent: input.monthly_rent,
-      notes: input.notes ?? null,
+      rent_per_bed: input.rent_per_bed,
       created_by: userId,
     })
     .select('*')
@@ -60,29 +63,17 @@ export async function updateRoom(
   supabase: DBClient,
   organizationId: string,
   id: string,
-  input: {
+  input: Partial<{
     room_number: string
-    room_type?: string | null
+    floor: number | null
     capacity: number
-    occupied_count?: number
-    monthly_rent: number
-    status?: 'active' | 'inactive' | 'maintenance'
-    notes?: string | null
-  }
+    rent_per_bed: number
+    status: string
+  }>
 ): Promise<StayNestRoom | null> {
-  const updates: Record<string, unknown> = {
-    room_number: input.room_number,
-    room_type: input.room_type ?? null,
-    capacity: input.capacity,
-    occupied_count: input.occupied_count ?? 0,
-    monthly_rent: input.monthly_rent,
-    notes: input.notes ?? null,
-  }
-  if (input.status) updates.status = input.status
-
   const { data } = await supabase
     .from('staynest_rooms')
-    .update(updates)
+    .update(input)
     .eq('id', id)
     .eq('organization_id', organizationId)
     .select('*')
@@ -90,14 +81,14 @@ export async function updateRoom(
   return data
 }
 
-export async function deactivateRoom(
+export async function softDeleteRoom(
   supabase: DBClient,
   organizationId: string,
   id: string
 ): Promise<StayNestRoom | null> {
   const { data } = await supabase
     .from('staynest_rooms')
-    .update({ status: 'inactive' })
+    .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
     .eq('organization_id', organizationId)
     .select('*')
@@ -108,15 +99,63 @@ export async function deactivateRoom(
 export async function countRoomsByStatus(
   supabase: DBClient,
   organizationId: string
-): Promise<{ active: number; inactive: number; maintenance: number }> {
+): Promise<{ available: number; partially_occupied: number; full: number; maintenance: number }> {
   const { data } = await supabase
     .from('staynest_rooms')
     .select('status')
     .eq('organization_id', organizationId)
+    .is('deleted_at', null)
 
-  const active = (data ?? []).filter((r) => r.status === 'active').length
-  const inactive = (data ?? []).filter((r) => r.status === 'inactive').length
-  const maintenance = (data ?? []).filter((r) => r.status === 'maintenance').length
+  const counts = { available: 0, partially_occupied: 0, full: 0, maintenance: 0 }
+  for (const r of data ?? []) {
+    if (r.status in counts) {
+      counts[r.status as keyof typeof counts]++
+    }
+  }
+  return counts
+}
 
-  return { active, inactive, maintenance }
+export async function getRoomsWithVacancy(
+  supabase: DBClient,
+  organizationId: string
+): Promise<StayNestRoom[]> {
+  const { data } = await supabase
+    .from('staynest_rooms')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .is('deleted_at', null)
+    .lt('occupied_beds', 'capacity' as any)
+    .in('status', ['available', 'partially_occupied'])
+    .order('room_number', { ascending: true })
+  return data ?? []
+}
+
+export async function updateRoomOccupancy(
+  supabase: DBClient,
+  organizationId: string,
+  roomId: string
+): Promise<void> {
+  const { count } = await supabase
+    .from('staynest_residents')
+    .select('*', { count: 'exact', head: true })
+    .eq('organization_id', organizationId)
+    .eq('room_id', roomId)
+    .eq('status', 'active')
+    .is('deleted_at', null)
+
+  const room = await getRoomById(supabase, organizationId, roomId)
+  if (!room) return
+
+  const occupied = count ?? 0
+  const newStatus = occupied >= room.capacity
+    ? 'full'
+    : occupied > 0
+      ? 'partially_occupied'
+      : 'available'
+
+  await supabase
+    .from('staynest_rooms')
+    .update({ occupied_beds: occupied, status: newStatus })
+    .eq('id', roomId)
+    .eq('organization_id', organizationId)
 }

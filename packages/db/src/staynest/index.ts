@@ -19,7 +19,8 @@ export {
   getResidentById,
   createResident,
   updateResident,
-  deactivateResident,
+  checkoutResident,
+  softDeleteResident,
   countResidentsByStatus,
 } from './residents'
 
@@ -28,8 +29,10 @@ export {
   getRoomById,
   createRoom,
   updateRoom,
-  deactivateRoom,
+  softDeleteRoom,
   countRoomsByStatus,
+  getRoomsWithVacancy,
+  updateRoomOccupancy,
 } from './rooms'
 
 export {
@@ -37,6 +40,12 @@ export {
   getRentRecordById,
   createRentRecord,
   markRentPaid,
+  generateRentForMonth,
+  recordPayment,
+  getReceipts,
+  calculateAndApplyLateFees,
+  getRevenueStats,
+  listRecurringRevenue,
   countPendingRent,
   countCollectedRent,
   countOverdueRent,
@@ -52,5 +61,55 @@ export {
   archiveNotice,
   countPublishedNotices,
 } from './notices'
+
+export {
+  listMaintenanceRequests,
+  getMaintenanceRequestById,
+  createMaintenanceRequest,
+  updateMaintenanceRequestStatus,
+  assignMaintenanceRequest,
+  countMaintenanceRequestsByStatus,
+} from './maintenance'
+
+export {
+  listAnnouncements,
+  getAnnouncementById,
+  createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement,
+  listActiveAnnouncements,
+} from './announcements'
+
+export {
+  dispatchNotification,
+  notifyRentDue,
+  notifyRentOverdue,
+  notifyMaintenanceResolved,
+  notifyAnnouncement,
+  registerProvider,
+  sendPendingNotifications,
+  listNotificationLogs,
+  listNotificationTemplates,
+} from './notifications'
+
+export type { StayNestAnalytics } from './analytics'
+export {
+  getStayNestAnalytics,
+  getRevenueTrend,
+  buildOccupancyTrend,
+  getMaintenanceTrend,
+} from './analytics'
+
+export type { GlobalSearchResult } from './search'
+export {
+  globalSearch,
+} from './search'
+
+export {
+  exportResidentsCSV,
+  exportRentRecordsCSV,
+  exportMaintenanceCSV,
+  exportVisitorsCSV,
+} from './export'
 
 export { isOrganizationEmpty, seedDemoData } from './demo'

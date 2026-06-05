@@ -8,9 +8,9 @@ export async function isOrganizationEmpty(
     'staynest_rooms',
     'staynest_residents',
     'staynest_rent_records',
-    'staynest_complaints',
+    'staynest_maintenance_requests',
     'staynest_visitors',
-    'staynest_notices',
+    'staynest_announcements',
   ] as const
 
   for (const table of tables) {
@@ -27,71 +27,71 @@ export async function isOrganizationEmpty(
 // ── Room data ────────────────────────────────────────────────────────
 
 const ROOM_DATA = [
-  { room_number: '101', room_type: 'single', capacity: 1, monthly_rent: 8000 },
-  { room_number: '102', room_type: 'single', capacity: 1, monthly_rent: 7500 },
-  { room_number: '103', room_type: 'single', capacity: 1, monthly_rent: 8500 },
-  { room_number: '104', room_type: 'single', capacity: 1, monthly_rent: 7000 },
-  { room_number: '105', room_type: 'single', capacity: 1, monthly_rent: 9000 },
-  { room_number: '201', room_type: 'double', capacity: 2, monthly_rent: 6000 },
-  { room_number: '202', room_type: 'double', capacity: 2, monthly_rent: 5500 },
-  { room_number: '203', room_type: 'double', capacity: 2, monthly_rent: 6500 },
-  { room_number: '204', room_type: 'double', capacity: 2, monthly_rent: 5000 },
-  { room_number: '205', room_type: 'double', capacity: 2, monthly_rent: 7000 },
-  { room_number: '301', room_type: 'triple', capacity: 3, monthly_rent: 4500 },
-  { room_number: '302', room_type: 'triple', capacity: 3, monthly_rent: 4000 },
-  { room_number: '303', room_type: 'triple', capacity: 3, monthly_rent: 5000 },
-  { room_number: '304', room_type: 'triple', capacity: 3, monthly_rent: 4200 },
-  { room_number: '305', room_type: 'triple', capacity: 3, monthly_rent: 4800 },
+  { room_number: '101', floor: 1, capacity: 1, rent_per_bed: 8000 },
+  { room_number: '102', floor: 1, capacity: 1, rent_per_bed: 7500 },
+  { room_number: '103', floor: 1, capacity: 1, rent_per_bed: 8500 },
+  { room_number: '104', floor: 1, capacity: 1, rent_per_bed: 7000 },
+  { room_number: '105', floor: 1, capacity: 1, rent_per_bed: 9000 },
+  { room_number: '201', floor: 2, capacity: 2, rent_per_bed: 6000 },
+  { room_number: '202', floor: 2, capacity: 2, rent_per_bed: 5500 },
+  { room_number: '203', floor: 2, capacity: 2, rent_per_bed: 6500 },
+  { room_number: '204', floor: 2, capacity: 2, rent_per_bed: 5000 },
+  { room_number: '205', floor: 2, capacity: 2, rent_per_bed: 7000 },
+  { room_number: '301', floor: 3, capacity: 3, rent_per_bed: 4500 },
+  { room_number: '302', floor: 3, capacity: 3, rent_per_bed: 4000 },
+  { room_number: '303', floor: 3, capacity: 3, rent_per_bed: 5000 },
+  { room_number: '304', floor: 3, capacity: 3, rent_per_bed: 4200 },
+  { room_number: '305', floor: 3, capacity: 3, rent_per_bed: 4800 },
 ]
 
 // ── Resident data ────────────────────────────────────────────────────
 
 const RESIDENT_DATA = [
-  { full_name: 'Rahul Sharma', phone: '9876543210', gender: 'male', guardian_name: 'Suresh Sharma', guardian_phone: '9812345670', room_number: '101', joining_date: '2026-01-15' },
-  { full_name: 'Amit Verma', phone: '9876543211', gender: 'male', guardian_name: 'Raj Verma', guardian_phone: '9812345671', room_number: '101', joining_date: '2026-02-01' },
-  { full_name: 'Sneha Reddy', phone: '9876543212', gender: 'female', guardian_name: 'Krishna Reddy', guardian_phone: '9812345672', room_number: '102', joining_date: '2026-01-10' },
-  { full_name: 'Priya Patel', phone: '9876543213', gender: 'female', guardian_name: 'Ashok Patel', guardian_phone: '9812345673', room_number: '103', joining_date: '2026-03-05' },
-  { full_name: 'Arjun Nair', phone: '9876543214', gender: 'male', guardian_name: 'Gopal Nair', guardian_phone: '9812345674', room_number: '104', joining_date: '2026-01-20' },
-  { full_name: 'Neha Gupta', phone: '9876543215', gender: 'female', guardian_name: 'Ravi Gupta', guardian_phone: '9812345675', room_number: '105', joining_date: '2026-02-15' },
-  { full_name: 'Vikram Singh', phone: '9876543216', gender: 'male', guardian_name: 'Dharam Singh', guardian_phone: '9812345676', room_number: '201', joining_date: '2026-01-05' },
-  { full_name: 'Ananya Joshi', phone: '9876543217', gender: 'female', guardian_name: 'Mohan Joshi', guardian_phone: '9812345677', room_number: '201', joining_date: '2026-02-20' },
-  { full_name: 'Rohit Malhotra', phone: '9876543218', gender: 'male', guardian_name: 'Sunil Malhotra', guardian_phone: '9812345678', room_number: '202', joining_date: '2026-03-01' },
-  { full_name: 'Pooja Deshmukh', phone: '9876543219', gender: 'female', guardian_name: 'Vijay Deshmukh', guardian_phone: '9812345679', room_number: '202', joining_date: '2026-01-25' },
-  { full_name: 'Karan Mehta', phone: '9876543220', gender: 'male', guardian_name: 'Deepak Mehta', guardian_phone: '9812345680', room_number: '203', joining_date: '2026-02-10' },
-  { full_name: 'Divya Kulkarni', phone: '9876543221', gender: 'female', guardian_name: 'Sanjay Kulkarni', guardian_phone: '9812345681', room_number: '203', joining_date: '2026-03-15' },
-  { full_name: 'Manish Tiwari', phone: '9876543222', gender: 'male', guardian_name: 'Akash Tiwari', guardian_phone: '9812345682', room_number: '204', joining_date: '2026-01-12' },
-  { full_name: 'Swati Bansal', phone: '9876543223', gender: 'female', guardian_name: 'Rakesh Bansal', guardian_phone: '9812345683', room_number: '204', joining_date: '2026-02-05' },
-  { full_name: 'Harsh Vardhan', phone: '9876543224', gender: 'male', guardian_name: 'Om Vardhan', guardian_phone: '9812345684', room_number: '205', joining_date: '2026-03-10' },
-  { full_name: 'Isha Saxena', phone: '9876543225', gender: 'female', guardian_name: 'Ajay Saxena', guardian_phone: '9812345685', room_number: '205', joining_date: '2026-01-18' },
-  { full_name: 'Gaurav Yadav', phone: '9876543226', gender: 'male', guardian_name: 'Ram Yadav', guardian_phone: '9812345686', room_number: '301', joining_date: '2026-02-22' },
-  { full_name: 'Kriti Agarwal', phone: '9876543227', gender: 'female', guardian_name: 'Shyam Agarwal', guardian_phone: '9812345687', room_number: '301', joining_date: '2026-03-20' },
-  { full_name: 'Ravi Shankar', phone: '9876543228', gender: 'male', guardian_name: 'Mohan Shankar', guardian_phone: '9812345688', room_number: '301', joining_date: '2026-04-01' },
-  { full_name: 'Tanvi Kapoor', phone: '9876543229', gender: 'female', guardian_name: 'Anil Kapoor', guardian_phone: '9812345689', room_number: '302', joining_date: '2026-01-28' },
-  { full_name: 'Aditya Bhat', phone: '9876543230', gender: 'male', guardian_name: 'Keshav Bhat', guardian_phone: '9812345690', room_number: '302', joining_date: '2026-02-14' },
-  { full_name: 'Nandini Rao', phone: '9876543231', gender: 'female', guardian_name: 'Prakash Rao', guardian_phone: '9812345691', room_number: '302', joining_date: '2026-03-25' },
-  { full_name: 'Siddharth Jain', phone: '9876543232', gender: 'male', guardian_name: 'Lalit Jain', guardian_phone: '9812345692', room_number: '303', joining_date: '2026-04-05' },
-  { full_name: 'Aisha Khan', phone: '9876543233', gender: 'female', guardian_name: 'Imran Khan', guardian_phone: '9812345693', room_number: '303', joining_date: '2026-01-08' },
-  { full_name: 'Pranav Mishra', phone: '9876543234', gender: 'male', guardian_name: 'Shiv Mishra', guardian_phone: '9812345694', room_number: '303', joining_date: '2026-02-18' },
-  { full_name: 'Shreya Pandey', phone: '9876543235', gender: 'female', guardian_name: 'Vishal Pandey', guardian_phone: '9812345695', room_number: '304', joining_date: '2026-03-12' },
-  { full_name: 'Lokesh Chauhan', phone: '9876543236', gender: 'male', guardian_name: 'Dinesh Chauhan', guardian_phone: '9812345696', room_number: '304', joining_date: '2026-04-10' },
-  { full_name: 'Megha Thakur', phone: '9876543237', gender: 'female', guardian_name: 'Raj Thakur', guardian_phone: '9812345697', room_number: '304', joining_date: '2026-01-30' },
-  { full_name: 'Nikhil Dutta', phone: '9876543238', gender: 'male', guardian_name: 'Arun Dutta', guardian_phone: '9812345698', room_number: '305', joining_date: '2026-02-25' },
-  { full_name: 'Kavita Joshi', phone: '9876543239', gender: 'female', guardian_name: 'Mahesh Joshi', guardian_phone: '9812345699', room_number: '305', joining_date: '2026-03-30' },
+  { full_name: 'Rahul Sharma', phone: '9876543210', gender: 'male', emergency_contact_name: 'Suresh Sharma', emergency_contact_phone: '9812345670', room_number: '101', check_in_date: '2026-01-15' },
+  { full_name: 'Amit Verma', phone: '9876543211', gender: 'male', emergency_contact_name: 'Raj Verma', emergency_contact_phone: '9812345671', room_number: '101', check_in_date: '2026-02-01' },
+  { full_name: 'Sneha Reddy', phone: '9876543212', gender: 'female', emergency_contact_name: 'Krishna Reddy', emergency_contact_phone: '9812345672', room_number: '102', check_in_date: '2026-01-10' },
+  { full_name: 'Priya Patel', phone: '9876543213', gender: 'female', emergency_contact_name: 'Ashok Patel', emergency_contact_phone: '9812345673', room_number: '103', check_in_date: '2026-03-05' },
+  { full_name: 'Arjun Nair', phone: '9876543214', gender: 'male', emergency_contact_name: 'Gopal Nair', emergency_contact_phone: '9812345674', room_number: '104', check_in_date: '2026-01-20' },
+  { full_name: 'Neha Gupta', phone: '9876543215', gender: 'female', emergency_contact_name: 'Ravi Gupta', emergency_contact_phone: '9812345675', room_number: '105', check_in_date: '2026-02-15' },
+  { full_name: 'Vikram Singh', phone: '9876543216', gender: 'male', emergency_contact_name: 'Dharam Singh', emergency_contact_phone: '9812345676', room_number: '201', check_in_date: '2026-01-05' },
+  { full_name: 'Ananya Joshi', phone: '9876543217', gender: 'female', emergency_contact_name: 'Mohan Joshi', emergency_contact_phone: '9812345677', room_number: '201', check_in_date: '2026-02-20' },
+  { full_name: 'Rohit Malhotra', phone: '9876543218', gender: 'male', emergency_contact_name: 'Sunil Malhotra', emergency_contact_phone: '9812345678', room_number: '202', check_in_date: '2026-03-01' },
+  { full_name: 'Pooja Deshmukh', phone: '9876543219', gender: 'female', emergency_contact_name: 'Vijay Deshmukh', emergency_contact_phone: '9812345679', room_number: '202', check_in_date: '2026-01-25' },
+  { full_name: 'Karan Mehta', phone: '9876543220', gender: 'male', emergency_contact_name: 'Deepak Mehta', emergency_contact_phone: '9812345680', room_number: '203', check_in_date: '2026-02-10' },
+  { full_name: 'Divya Kulkarni', phone: '9876543221', gender: 'female', emergency_contact_name: 'Sanjay Kulkarni', emergency_contact_phone: '9812345681', room_number: '203', check_in_date: '2026-03-15' },
+  { full_name: 'Manish Tiwari', phone: '9876543222', gender: 'male', emergency_contact_name: 'Akash Tiwari', emergency_contact_phone: '9812345682', room_number: '204', check_in_date: '2026-01-12' },
+  { full_name: 'Swati Bansal', phone: '9876543223', gender: 'female', emergency_contact_name: 'Rakesh Bansal', emergency_contact_phone: '9812345683', room_number: '204', check_in_date: '2026-02-05' },
+  { full_name: 'Harsh Vardhan', phone: '9876543224', gender: 'male', emergency_contact_name: 'Om Vardhan', emergency_contact_phone: '9812345684', room_number: '205', check_in_date: '2026-03-10' },
+  { full_name: 'Isha Saxena', phone: '9876543225', gender: 'female', emergency_contact_name: 'Ajay Saxena', emergency_contact_phone: '9812345685', room_number: '205', check_in_date: '2026-01-18' },
+  { full_name: 'Gaurav Yadav', phone: '9876543226', gender: 'male', emergency_contact_name: 'Ram Yadav', emergency_contact_phone: '9812345686', room_number: '301', check_in_date: '2026-02-22' },
+  { full_name: 'Kriti Agarwal', phone: '9876543227', gender: 'female', emergency_contact_name: 'Shyam Agarwal', emergency_contact_phone: '9812345687', room_number: '301', check_in_date: '2026-03-20' },
+  { full_name: 'Ravi Shankar', phone: '9876543228', gender: 'male', emergency_contact_name: 'Mohan Shankar', emergency_contact_phone: '9812345688', room_number: '301', check_in_date: '2026-04-01' },
+  { full_name: 'Tanvi Kapoor', phone: '9876543229', gender: 'female', emergency_contact_name: 'Anil Kapoor', emergency_contact_phone: '9812345689', room_number: '302', check_in_date: '2026-01-28' },
+  { full_name: 'Aditya Bhat', phone: '9876543230', gender: 'male', emergency_contact_name: 'Keshav Bhat', emergency_contact_phone: '9812345690', room_number: '302', check_in_date: '2026-02-14' },
+  { full_name: 'Nandini Rao', phone: '9876543231', gender: 'female', emergency_contact_name: 'Prakash Rao', emergency_contact_phone: '9812345691', room_number: '302', check_in_date: '2026-03-25' },
+  { full_name: 'Siddharth Jain', phone: '9876543232', gender: 'male', emergency_contact_name: 'Lalit Jain', emergency_contact_phone: '9812345692', room_number: '303', check_in_date: '2026-04-05' },
+  { full_name: 'Aisha Khan', phone: '9876543233', gender: 'female', emergency_contact_name: 'Imran Khan', emergency_contact_phone: '9812345693', room_number: '303', check_in_date: '2026-01-08' },
+  { full_name: 'Pranav Mishra', phone: '9876543234', gender: 'male', emergency_contact_name: 'Shiv Mishra', emergency_contact_phone: '9812345694', room_number: '303', check_in_date: '2026-02-18' },
+  { full_name: 'Shreya Pandey', phone: '9876543235', gender: 'female', emergency_contact_name: 'Vishal Pandey', emergency_contact_phone: '9812345695', room_number: '304', check_in_date: '2026-03-12' },
+  { full_name: 'Lokesh Chauhan', phone: '9876543236', gender: 'male', emergency_contact_name: 'Dinesh Chauhan', emergency_contact_phone: '9812345696', room_number: '304', check_in_date: '2026-04-10' },
+  { full_name: 'Megha Thakur', phone: '9876543237', gender: 'female', emergency_contact_name: 'Raj Thakur', emergency_contact_phone: '9812345697', room_number: '304', check_in_date: '2026-01-30' },
+  { full_name: 'Nikhil Dutta', phone: '9876543238', gender: 'male', emergency_contact_name: 'Arun Dutta', emergency_contact_phone: '9812345698', room_number: '305', check_in_date: '2026-02-25' },
+  { full_name: 'Kavita Joshi', phone: '9876543239', gender: 'female', emergency_contact_name: 'Mahesh Joshi', emergency_contact_phone: '9812345699', room_number: '305', check_in_date: '2026-03-30' },
 ]
 
-// ── Complaint data ───────────────────────────────────────────────────
+// ── Maintenance request data ─────────────────────────────────────────
 
-const COMPLAINT_DATA = [
-  { title: 'AC not cooling properly', description: 'The AC in the room has been blowing warm air since last night.', raised_by: 'Rahul Sharma', room_number: '101', priority: 'high' },
-  { title: 'Leaking washroom tap', description: 'The washroom sink tap is leaking continuously. Water is pooling on the floor.', raised_by: 'Sneha Reddy', room_number: '102', priority: 'medium' },
-  { title: 'WiFi not working', description: 'Internet connection has been down since morning. Need immediate fix.', raised_by: 'Arjun Nair', room_number: '104', priority: 'high' },
-  { title: 'Broken cupboard door', description: 'The cupboard door hinge is broken and the door is hanging loose.', raised_by: 'Priya Patel', room_number: '103', priority: 'low' },
-  { title: 'Water cooler not working', description: 'The common area water cooler is not dispensing cold water.', raised_by: 'Vikram Singh', room_number: '201', priority: 'medium' },
-  { title: 'Geyser not heating', description: 'The geyser in bathroom is not heating water properly.', raised_by: 'Rohit Malhotra', room_number: '202', priority: 'high' },
-  { title: 'Window glass cracked', description: 'The window glass in the room got cracked during the storm yesterday.', raised_by: 'Divya Kulkarni', room_number: '203', priority: 'low' },
-  { title: 'Mosquito problem', description: 'Too many mosquitoes in the room. Need fumigation.', raised_by: 'Harsh Vardhan', room_number: '205', priority: 'medium' },
-  { title: 'Fan regulator stuck', description: 'The ceiling fan regulator is stuck and the fan runs at full speed only.', raised_by: 'Kriti Agarwal', room_number: '301', priority: 'low' },
-  { title: 'Main gate lock broken', description: 'The main entry gate lock is jammed and cannot be opened from outside.', raised_by: 'Tanvi Kapoor', room_number: '302', priority: 'high' },
+const MAINTENANCE_DATA = [
+  { title: 'AC not cooling properly', description: 'The AC in the room has been blowing warm air since last night.', category: 'electrical', priority: 'high' },
+  { title: 'Leaking washroom tap', description: 'The washroom sink tap is leaking continuously.', category: 'plumbing', priority: 'medium' },
+  { title: 'WiFi not working', description: 'Internet connection has been down since morning.', category: 'internet', priority: 'high' },
+  { title: 'Broken cupboard door', description: 'The cupboard door hinge is broken.', category: 'furniture', priority: 'low' },
+  { title: 'Water cooler not working', description: 'Common area water cooler not dispensing cold water.', category: 'plumbing', priority: 'medium' },
+  { title: 'Geyser not heating', description: 'The geyser in bathroom is not heating water properly.', category: 'electrical', priority: 'high' },
+  { title: 'Window glass cracked', description: 'Window glass got cracked during the storm.', category: 'other', priority: 'low' },
+  { title: 'Mosquito problem', description: 'Too many mosquitoes in the room. Need fumigation.', category: 'cleaning', priority: 'medium' },
+  { title: 'Fan regulator stuck', description: 'Ceiling fan regulator is stuck at full speed.', category: 'electrical', priority: 'low' },
+  { title: 'Main gate lock broken', description: 'Main entry gate lock is jammed.', category: 'furniture', priority: 'high' },
 ]
 
 // ── Visitor data ─────────────────────────────────────────────────────
@@ -119,12 +119,12 @@ const VISITOR_DATA = [
   { name: 'Renu Shankar', phone: '9988776670', purpose: 'Family member', room_number: '302' },
 ]
 
-const NOTICE_DATA = [
-  { title: 'Annual Maintenance Week', content: 'The building will undergo annual maintenance from June 20 to June 25. Water supply will be interrupted between 10 AM and 4 PM on these days. We apologize for the inconvenience.' },
-  { title: 'Diwali Celebration - June 15th', content: 'We are organizing a Diwali celebration in the common hall on June 15th at 7 PM. All residents are cordially invited. Please bring a dish to share. Contact the warden for more details.' },
-  { title: 'New WiFi Password', content: 'The WiFi password has been updated for security reasons. New password: StayNest@2026. Please update your devices. Contact the front desk if you face any issues.' },
-  { title: 'Cleaning Schedule Update', content: 'Starting this week, common area cleaning will happen on Mondays, Wednesdays, and Fridays instead of daily. Room cleaning requests can be submitted at the front desk.' },
-  { title: 'Guest Entry Policy Reminder', content: 'All guests must register at the front desk before entering. Guest entry is allowed between 8 AM and 9 PM. Overnight guests require prior approval from the warden. Please cooperate.' },
+const ANNOUNCEMENT_DATA = [
+  { title: 'Annual Maintenance Week', message: 'The building will undergo annual maintenance from June 20 to June 25. Water supply will be interrupted between 10 AM and 4 PM on these days.', priority: 'important' },
+  { title: 'Diwali Celebration', message: 'We are organizing a Diwali celebration in the common hall on June 15th at 7 PM. All residents are cordially invited.', priority: 'normal' },
+  { title: 'New WiFi Password', message: 'The WiFi password has been updated. New password: StayNest@2026. Please update your devices.', priority: 'important' },
+  { title: 'Cleaning Schedule Update', message: 'Common area cleaning will now happen on Mondays, Wednesdays, and Fridays.', priority: 'normal' },
+  { title: 'Guest Entry Policy Reminder', message: 'All guests must register at the front desk. Guest entry is allowed between 8 AM and 9 PM.', priority: 'urgent' },
 ]
 
 function getDaysAgo(days: number): string {
@@ -145,8 +145,8 @@ export async function seedDemoData(
       ROOM_DATA.map((room) => ({
         organization_id: organizationId,
         ...room,
-        status: 'active',
-        occupied_count: 0,
+        status: 'available',
+        occupied_beds: 0,
         created_by: userId,
       }))
     )
@@ -158,31 +158,42 @@ export async function seedDemoData(
   // 2. Seed residents and track resident IDs + room occupancy
   const residentInserts = RESIDENT_DATA.map((r) => ({
     organization_id: organizationId,
-    ...r,
-    status: 'active' as const,
-    notes: null,
+    full_name: r.full_name,
+    phone: r.phone,
+    gender: r.gender,
+    emergency_contact_name: r.emergency_contact_name,
+    emergency_contact_phone: r.emergency_contact_phone,
     email: null,
+    id_proof_type: null,
+    id_proof_number: null,
+    room_id: roomMap.get(r.room_number) ?? null,
+    check_in_date: r.check_in_date,
+    status: 'active' as const,
     created_by: userId,
   }))
 
   const { data: residents } = await supabase
     .from('staynest_residents')
     .insert(residentInserts)
-    .select('id, full_name, room_number')
+    .select('id, full_name, room_id')
 
   if (!residents) throw new Error('Failed to create residents')
 
-  // Update room occupancy counts
+  // Update room occupancy
   const roomOccupancy = new Map<string, number>()
   for (const r of residents) {
-    roomOccupancy.set(r.room_number, (roomOccupancy.get(r.room_number) ?? 0) + 1)
+    if (r.room_id) {
+      roomOccupancy.set(r.room_id, (roomOccupancy.get(r.room_id) ?? 0) + 1)
+    }
   }
-  for (const [roomNumber, count] of roomOccupancy) {
+  for (const [roomId, count] of roomOccupancy) {
+    const status = count >= (ROOM_DATA.find((rd) => roomMap.get(rd.room_number) === roomId)?.capacity ?? 1)
+      ? 'full' : 'partially_occupied'
     await supabase
       .from('staynest_rooms')
-      .update({ occupied_count: count })
+      .update({ occupied_beds: count, status })
+      .eq('id', roomId)
       .eq('organization_id', organizationId)
-      .eq('room_number', roomNumber)
   }
 
   // 3. Seed rent records (mix of paid, pending, overdue)
@@ -211,7 +222,7 @@ export async function seedDemoData(
     const resident = residents[rIdx]
     const roomNumber = RESIDENT_DATA[rIdx].room_number
     const room = ROOM_DATA.find((rd) => rd.room_number === roomNumber)
-    const amount = room?.monthly_rent ?? 5000
+    const amount = room?.rent_per_bed ?? 5000
     const roomId = roomMap.get(roomNumber) ?? null
 
     for (let offset = 0; offset < 3; offset++) {
@@ -259,27 +270,31 @@ export async function seedDemoData(
     .insert(rentRecords)
   if (rentError) throw new Error('Failed to create rent records')
 
-  // 4. Seed complaints
-  const complaintInserts = COMPLAINT_DATA.map((c, i) => ({
+  // 4. Seed maintenance requests
+  const maintInserts = MAINTENANCE_DATA.map((m, i) => ({
     organization_id: organizationId,
-    ...c,
-    status: (['open', 'in-progress', 'resolved'] as const)[i % 3],
-    resolved_at: null,
-    resolved_by: null,
+    ...m,
+    status: (['open', 'in_progress', 'resolved', 'assigned', 'closed'] as const)[i % 5],
+    resident_id: residents?.[i % residents.length]?.id ?? null,
+    room_id: residents?.[i % residents.length]?.room_id ?? null,
     created_by: userId,
   }))
 
-  const { error: complaintError } = await supabase
-    .from('staynest_complaints')
-    .insert(complaintInserts)
-  if (complaintError) throw new Error('Failed to create complaints')
+  const { error: maintError } = await supabase
+    .from('staynest_maintenance_requests')
+    .insert(maintInserts)
+  if (maintError) throw new Error('Failed to create maintenance requests')
 
   // 5. Seed visitors
   const visitorInserts = VISITOR_DATA.map((v, i) => {
     const checkedOut = i % 3 !== 0
     return {
       organization_id: organizationId,
-      ...v,
+      name: v.name,
+      phone: v.phone,
+      purpose: v.purpose,
+      room_number: v.room_number,
+      resident_id: residents?.[i % residents.length]?.id ?? null,
       status: checkedOut ? 'checked-out' : 'checked-in',
       check_in_at: getDaysAgo(Math.floor(i / 2)),
       check_out_at: checkedOut ? getDaysAgo(Math.floor(i / 3)) : null,
@@ -292,17 +307,18 @@ export async function seedDemoData(
     .insert(visitorInserts)
   if (visitorError) throw new Error('Failed to create visitors')
 
-  // 6. Seed notices
-  const noticeInserts = NOTICE_DATA.map((n, i) => ({
+  // 6. Seed announcements
+  const announcementInserts = ANNOUNCEMENT_DATA.map((a, i) => ({
     organization_id: organizationId,
-    ...n,
-    status: 'published' as const,
-    published_at: getDaysAgo(i * 3 + 1),
+    title: a.title,
+    message: a.message,
+    priority: a.priority,
+    publish_date: getDaysAgo(i * 3 + 1).slice(0, 10),
     created_by: userId,
   }))
 
-  const { error: noticeError } = await supabase
-    .from('staynest_notices')
-    .insert(noticeInserts)
-  if (noticeError) throw new Error('Failed to create notices')
+  const { error: announcementError } = await supabase
+    .from('staynest_announcements')
+    .insert(announcementInserts)
+  if (announcementError) throw new Error('Failed to create announcements')
 }

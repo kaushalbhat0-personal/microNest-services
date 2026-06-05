@@ -13,26 +13,20 @@ import {
 } from '@micronest/ui'
 import type { Column } from '@micronest/ui'
 import type { StayNestRoom } from '@micronest/db'
-import { createRoom, updateRoom, deactivateRoom } from '@/lib/staynest/actions'
+import { createRoom, updateRoom, deleteRoom } from '@/lib/staynest/actions'
 
-const statusVariant: Record<string, 'success' | 'default' | 'warning'> = {
-  active: 'success',
-  inactive: 'default',
+const statusVariant: Record<string, 'success' | 'warning' | 'default'> = {
+  available: 'success',
+  partially_occupied: 'warning',
+  full: 'default',
   maintenance: 'warning',
 }
 
 const statusLabel: Record<string, string> = {
-  active: 'Active',
-  inactive: 'Inactive',
+  available: 'Available',
+  partially_occupied: 'Partial',
+  full: 'Full',
   maintenance: 'Maintenance',
-}
-
-const roomTypeLabel: Record<string, string> = {
-  single: 'Single',
-  double: 'Double',
-  triple: 'Triple',
-  dorm: 'Dorm',
-  other: 'Other',
 }
 
 function formatCurrency(amount: number) {
@@ -46,12 +40,10 @@ function formatCurrency(amount: number) {
 const emptyForm = {
   id: '',
   room_number: '',
-  room_type: '',
+  floor: 0,
   capacity: 1,
-  occupied_count: 0,
-  monthly_rent: 0,
-  status: 'active',
-  notes: '',
+  rent_per_bed: 0,
+  status: 'available' as 'available' | 'partially_occupied' | 'full' | 'maintenance',
 }
 
 export function RoomsContent({
@@ -83,11 +75,9 @@ export function RoomsContent({
 
     const formData = new FormData()
     formData.set('room_number', form.room_number)
-    formData.set('room_type', form.room_type)
+    formData.set('floor', String(form.floor))
     formData.set('capacity', String(form.capacity))
-    formData.set('occupied_count', String(form.occupied_count))
-    formData.set('monthly_rent', String(form.monthly_rent))
-    formData.set('notes', form.notes)
+    formData.set('rent_per_bed', String(form.rent_per_bed))
 
     if (isEditing) {
       formData.set('id', form.id)
@@ -120,20 +110,18 @@ export function RoomsContent({
     setForm({
       id: room.id,
       room_number: room.room_number,
-      room_type: room.room_type ?? '',
+      floor: room.floor ?? 0,
       capacity: room.capacity,
-      occupied_count: room.occupied_count,
-      monthly_rent: room.monthly_rent,
+      rent_per_bed: room.rent_per_bed,
       status: room.status,
-      notes: room.notes ?? '',
     })
     setShowForm(true)
     setError(null)
   }, [])
 
-  const handleDeactivate = useCallback(
+  const handleDelete = useCallback(
     async (id: string) => {
-      const result = await deactivateRoom(id)
+      const result = await deleteRoom(id)
       if (result?.error) {
         setError(result.error)
       } else {
@@ -146,32 +134,32 @@ export function RoomsContent({
   const columns: Column<StayNestRoom>[] = [
     { header: 'Room', accessor: (r) => <span className="font-mono text-sm">{r.room_number}</span> },
     {
-      header: 'Type',
+      header: 'Floor',
       hideOnMobile: true,
       accessor: (r) =>
-        r.room_type ? (
-          <span className="text-sm text-gray-600">{roomTypeLabel[r.room_type] ?? r.room_type}</span>
+        r.floor != null ? (
+          <span className="text-sm text-gray-600">Floor {r.floor}</span>
         ) : (
           <span className="text-sm text-gray-400">—</span>
         ),
     },
     {
-      header: 'Capacity',
+      header: 'Beds',
       accessor: (r) => (
         <span className="text-sm">
-          {r.occupied_count}<span className="text-gray-400">/{r.capacity}</span>
+          {r.occupied_beds}<span className="text-gray-400">/{r.capacity}</span>
         </span>
       ),
     },
     {
-      header: 'Monthly Rent',
-      accessor: (r) => <span className="text-sm tabular-nums">{formatCurrency(r.monthly_rent)}</span>,
+      header: 'Rent/Bed',
+      accessor: (r) => <span className="text-sm tabular-nums">{formatCurrency(r.rent_per_bed)}</span>,
     },
     {
       header: 'Status',
       accessor: (r) => (
-        <StatusBadge variant={statusVariant[r.status]}>
-          {statusLabel[r.status]}
+        <StatusBadge variant={statusVariant[r.status] ?? 'default'}>
+          {statusLabel[r.status] ?? r.status}
         </StatusBadge>
       ),
     },
@@ -182,13 +170,13 @@ export function RoomsContent({
           <Button size="sm" variant="ghost" onClick={() => handleEdit(r)}>
             Edit
           </Button>
-          {r.status === 'active' && (
+          {r.occupied_beds === 0 && (
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => handleDeactivate(r.id)}
+              onClick={() => handleDelete(r.id)}
             >
-              Deactivate
+              Delete
             </Button>
           )}
         </div>
@@ -234,24 +222,19 @@ export function RoomsContent({
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Room Type
+                  Floor
                 </label>
-                <select
-                  value={form.room_type}
-                  onChange={(e) => setForm({ ...form, room_type: e.target.value })}
+                <input
+                  type="number"
+                  min={0}
+                  value={form.floor}
+                  onChange={(e) => setForm({ ...form, floor: parseInt(e.target.value) || 0 })}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                >
-                  <option value="">Select</option>
-                  <option value="single">Single</option>
-                  <option value="double">Double</option>
-                  <option value="triple">Triple</option>
-                  <option value="dorm">Dorm</option>
-                  <option value="other">Other</option>
-                </select>
+                />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Capacity *
+                  Capacity (beds) *
                 </label>
                 <input
                   type="number"
@@ -264,26 +247,14 @@ export function RoomsContent({
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Occupied
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={form.occupied_count}
-                  onChange={(e) => setForm({ ...form, occupied_count: parseInt(e.target.value) || 0 })}
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Monthly Rent (₹) *
+                  Rent per Bed (₹) *
                 </label>
                 <input
                   type="number"
                   min={0}
                   required
-                  value={form.monthly_rent}
-                  onChange={(e) => setForm({ ...form, monthly_rent: parseInt(e.target.value) || 0 })}
+                  value={form.rent_per_bed}
+                  onChange={(e) => setForm({ ...form, rent_per_bed: parseInt(e.target.value) || 0 })}
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                 />
               </div>
@@ -294,26 +265,16 @@ export function RoomsContent({
                   </label>
                   <select
                     value={form.status}
-                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    onChange={(e) => setForm({ ...form, status: e.target.value as any })}
                     className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                   >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="available">Available</option>
+                    <option value="partially_occupied">Partially Occupied</option>
+                    <option value="full">Full</option>
                     <option value="maintenance">Maintenance</option>
                   </select>
                 </div>
               )}
-              <div className="sm:col-span-2">
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Notes
-                </label>
-                <textarea
-                  rows={2}
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
             </div>
 
             {error && (
@@ -353,13 +314,13 @@ export function RoomsContent({
             <div>
               <div className="flex items-center justify-between">
                 <p className="font-mono font-medium text-gray-900">Room {r.room_number}</p>
-                <StatusBadge variant={statusVariant[r.status]}>
-                  {statusLabel[r.status]}
+                <StatusBadge variant={statusVariant[r.status] ?? 'default'}>
+                  {statusLabel[r.status] ?? r.status}
                 </StatusBadge>
               </div>
               <div className="mt-2 space-y-1 text-sm text-gray-500">
-                <p>{r.room_type ? roomTypeLabel[r.room_type] : '—'} &middot; {r.occupied_count}/{r.capacity} occupied</p>
-                <p className="font-medium text-gray-700">{formatCurrency(r.monthly_rent)}/mo</p>
+                <p>{r.floor != null ? `Floor ${r.floor}` : '—'} &middot; {r.occupied_beds}/{r.capacity} beds</p>
+                <p className="font-medium text-gray-700">{formatCurrency(r.rent_per_bed)}/bed</p>
               </div>
               <div className="mt-3 flex gap-2">
                 <button
@@ -368,12 +329,12 @@ export function RoomsContent({
                 >
                   Edit
                 </button>
-                {r.status === 'active' && (
+                {r.occupied_beds === 0 && (
                   <button
-                    onClick={() => handleDeactivate(r.id)}
-                    className="min-h-[44px] rounded-md bg-gray-50 px-4 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                    onClick={() => handleDelete(r.id)}
+                    className="min-h-[44px] rounded-md bg-red-50 px-4 text-sm font-medium text-red-600 hover:bg-red-100"
                   >
-                    Deactivate
+                    Delete
                   </button>
                 )}
               </div>

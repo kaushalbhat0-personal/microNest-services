@@ -34,6 +34,10 @@ export interface Organization {
   name: string
   slug: string
   logo_url: string | null
+  late_fee_type: 'fixed' | 'per_day'
+  late_fee_amount: number
+  late_fee_grace_period: number
+  rent_due_day: number
   created_by: string
   created_at: string
   updated_at: string
@@ -96,9 +100,12 @@ export interface StayNestVisitor {
   phone: string
   purpose: string
   room_number: string
+  resident_id: string | null
+  notes: string | null
   status: 'checked-in' | 'checked-out'
   check_in_at: string
   check_out_at: string | null
+  deleted_at: string | null
   created_by: string
   created_at: string
   updated_at: string
@@ -127,12 +134,16 @@ export interface StayNestResident {
   phone: string
   email: string | null
   gender: 'male' | 'female' | 'other' | null
-  guardian_name: string | null
-  guardian_phone: string | null
-  room_number: string
-  joining_date: string
-  status: 'active' | 'inactive'
-  notes: string | null
+  emergency_contact_name: string | null
+  emergency_contact_phone: string | null
+  id_proof_type: 'aadhaar' | 'pan' | 'voter' | 'driving_license' | 'passport' | 'other' | null
+  id_proof_number: string | null
+  room_id: string | null
+  bed_number: number | null
+  check_in_date: string
+  check_out_date: string | null
+  status: 'active' | 'notice_period' | 'checked_out'
+  deleted_at: string | null
   created_by: string
   created_at: string
   updated_at: string
@@ -142,12 +153,46 @@ export interface StayNestRoom {
   id: string
   organization_id: string
   room_number: string
-  room_type: 'single' | 'double' | 'triple' | 'dorm' | 'other' | null
+  floor: number | null
   capacity: number
-  occupied_count: number
-  monthly_rent: number
-  status: 'active' | 'inactive' | 'maintenance'
+  occupied_beds: number
+  rent_per_bed: number
+  status: 'available' | 'partially_occupied' | 'full' | 'maintenance'
+  deleted_at: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface StayNestMaintenanceRequest {
+  id: string
+  organization_id: string
+  title: string
+  description: string
+  category: 'electrical' | 'plumbing' | 'furniture' | 'internet' | 'cleaning' | 'other'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  status: 'open' | 'assigned' | 'in_progress' | 'resolved' | 'closed'
+  resident_id: string | null
+  room_id: string | null
+  assigned_to: string | null
+  resolved_at: string | null
+  resolved_by: string | null
   notes: string | null
+  deleted_at: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface StayNestAnnouncement {
+  id: string
+  organization_id: string
+  title: string
+  message: string
+  priority: 'normal' | 'important' | 'urgent'
+  publish_date: string
+  expiry_date: string | null
+  deleted_at: string | null
   created_by: string
   created_at: string
   updated_at: string
@@ -172,15 +217,57 @@ export interface StayNestRentRecord {
   room_id: string | null
   billing_month: number
   billing_year: number
+  rent_amount: number
+  late_fee: number
   amount: number
+  paid_amount: number
   due_date: string
-  paid_at: string | null
+  payment_date: string | null
   payment_method: 'cash' | 'upi' | 'bank_transfer' | 'other' | null
-  status: 'pending' | 'paid' | 'overdue'
+  status: 'pending' | 'paid' | 'partially_paid' | 'overdue'
+  receipt_number: string | null
   notes: string | null
   created_by: string
   created_at: string
   updated_at: string
+}
+
+export interface StayNestReceipt {
+  id: string
+  organization_id: string
+  rent_record_id: string
+  receipt_number: string
+  amount_paid: number
+  payment_method: 'cash' | 'upi' | 'bank_transfer' | 'other'
+  payment_date: string
+  notes: string | null
+  created_by: string
+  created_at: string
+}
+
+export interface StayNestNotificationTemplate {
+  id: string
+  organization_id: string | null
+  event: 'rent_due' | 'rent_overdue' | 'announcement_created' | 'maintenance_resolved'
+  channel: 'whatsapp' | 'email' | 'sms'
+  template_text: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface StayNestNotificationLog {
+  id: string
+  organization_id: string
+  template_id: string | null
+  event: string
+  channel: string
+  recipient: string
+  rendered_message: string
+  status: 'pending' | 'sent' | 'failed'
+  error_message: string | null
+  sent_at: string | null
+  created_at: string
 }
 
 export type FeedbackCategory =
@@ -279,10 +366,40 @@ export interface Database {
         Update: Partial<Omit<StayNestNotice, 'id'>>
         Relationships: []
       }
+      staynest_maintenance_requests: {
+        Row: StayNestMaintenanceRequest
+        Insert: Omit<StayNestMaintenanceRequest, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<StayNestMaintenanceRequest, 'id'>>
+        Relationships: []
+      }
+      staynest_announcements: {
+        Row: StayNestAnnouncement
+        Insert: Omit<StayNestAnnouncement, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<StayNestAnnouncement, 'id'>>
+        Relationships: []
+      }
       product_feedback: {
         Row: ProductFeedback
         Insert: Omit<ProductFeedback, 'id' | 'created_at'>
         Update: Partial<Omit<ProductFeedback, 'id'>>
+        Relationships: []
+      }
+      staynest_receipts: {
+        Row: StayNestReceipt
+        Insert: Omit<StayNestReceipt, 'id' | 'created_at'>
+        Update: never
+        Relationships: []
+      }
+      staynest_notification_templates: {
+        Row: StayNestNotificationTemplate
+        Insert: Omit<StayNestNotificationTemplate, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<StayNestNotificationTemplate, 'id'>>
+        Relationships: []
+      }
+      staynest_notification_logs: {
+        Row: StayNestNotificationLog
+        Insert: Omit<StayNestNotificationLog, 'id' | 'created_at'>
+        Update: Partial<Omit<StayNestNotificationLog, 'id'>>
         Relationships: []
       }
     }

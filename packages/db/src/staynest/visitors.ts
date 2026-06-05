@@ -8,6 +8,7 @@ export async function listVisitors(
     .from('staynest_visitors')
     .select('*')
     .eq('organization_id', organizationId)
+    .is('deleted_at', null)
     .order('check_in_at', { ascending: false })
   return data ?? []
 }
@@ -30,10 +31,11 @@ export async function createVisitor(
   supabase: DBClient,
   organizationId: string,
   input: {
-    name: string
+    visitor_name: string
     phone: string
     purpose: string
-    room_number: string
+    resident_id?: string | null
+    notes?: string | null
   },
   userId: string
 ): Promise<StayNestVisitor | null> {
@@ -41,10 +43,11 @@ export async function createVisitor(
     .from('staynest_visitors')
     .insert({
       organization_id: organizationId,
-      name: input.name,
+      name: input.visitor_name,
       phone: input.phone,
       purpose: input.purpose,
-      room_number: input.room_number,
+      resident_id: input.resident_id ?? null,
+      notes: input.notes ?? null,
       created_by: userId,
     })
     .select('*')
@@ -55,8 +58,7 @@ export async function createVisitor(
 export async function checkOutVisitor(
   supabase: DBClient,
   organizationId: string,
-  id: string,
-  userId: string
+  id: string
 ): Promise<StayNestVisitor | null> {
   const { data } = await supabase
     .from('staynest_visitors')
@@ -79,9 +81,9 @@ export async function countVisitorsByStatus(
     .from('staynest_visitors')
     .select('status')
     .eq('organization_id', organizationId)
+    .is('deleted_at', null)
 
   const checkedIn = (data ?? []).filter((v) => v.status === 'checked-in').length
   const checkedOut = (data ?? []).filter((v) => v.status === 'checked-out').length
-
   return { checkedIn, checkedOut }
 }

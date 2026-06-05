@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { createServerClient } from '@micronest/auth'
-import { getUserOrganizations, listComplaints } from '@micronest/db'
+import { getUserOrganizations, listMaintenanceRequests } from '@micronest/db'
 import { ComplaintsContent } from './complaints-content'
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ export default async function ComplaintsPage() {
   }
 
   const orgId = orgs[0].id
-  const complaints = await listComplaints(supabase, orgId)
+  const complaints = await listMaintenanceRequests(supabase, orgId)
 
   return <ComplaintsContent initialComplaints={complaints} organizationId={orgId} />
 }

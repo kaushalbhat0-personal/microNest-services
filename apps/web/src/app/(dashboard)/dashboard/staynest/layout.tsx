@@ -2,12 +2,14 @@ import { TabNav } from '@micronest/ui'
 
 const tabs = [
   { href: '/dashboard/staynest', label: 'Overview' },
+  { href: '/dashboard/staynest/analytics', label: 'Analytics' },
   { href: '/dashboard/staynest/rooms', label: 'Rooms' },
   { href: '/dashboard/staynest/residents', label: 'Residents' },
-  { href: '/dashboard/staynest/visitors', label: 'Visitor Log' },
-  { href: '/dashboard/staynest/complaints', label: 'Complaints' },
+  { href: '/dashboard/staynest/visitors', label: 'Visitors' },
+  { href: '/dashboard/staynest/complaints', label: 'Maintenance' },
   { href: '/dashboard/staynest/rent', label: 'Rent' },
-  { href: '/dashboard/staynest/notices', label: 'Notices' },
+  { href: '/dashboard/staynest/notices', label: 'Announcements' },
+  { href: '/dashboard/staynest/search', label: 'Search' },
 ]
 
 export default function StayNestLayout({

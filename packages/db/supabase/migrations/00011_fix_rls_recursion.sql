@@ -48,7 +48,8 @@ create policy "organizations_select_member"
 
 create policy "organizations_insert_authenticated"
   on organizations for insert
-  with check (auth.role() = 'authenticated');
+  to authenticated
+  with check (true);
 
 -- 3. Organization members ----------------------------------------------------
 

@@ -53,7 +53,7 @@ export async function completeOnboarding(
   // Create organization
   const orgResult = await supabase
     .from('organizations')
-    .insert({ name: orgName.trim(), slug })
+    .insert({ name: orgName.trim(), slug, created_by: user.id })
     .select('*') as unknown as { data: unknown[] | null; error: unknown }
 
   if (orgResult.error || !orgResult.data || orgResult.data.length === 0) {

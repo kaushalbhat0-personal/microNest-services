@@ -13,7 +13,7 @@ const links = [
   { href: '/ecosystems', label: 'Ecosystems' },
 ]
 
-export function MarketingNav() {
+export function MarketingNav({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   const pathname = usePathname()
 
   return (
@@ -41,14 +41,22 @@ export function MarketingNav() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link href="/login">
-            <Button variant="ghost" size="sm">
-              Log in
-            </Button>
-          </Link>
-          <Link href="/signup">
-            <Button size="sm">Sign up</Button>
-          </Link>
+          {isLoggedIn ? (
+            <Link href="/dashboard">
+              <Button size="sm">Dashboard</Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm">
+                  Log in
+                </Button>
+              </Link>
+              <Link href="/signup">
+                <Button size="sm">Sign up</Button>
+              </Link>
+            </>
+          )}
         </div>
       </nav>
     </header>

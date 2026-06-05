@@ -81,6 +81,10 @@ export async function completeOnboarding(
     return { error: 'Selected ecosystems not found.' }
   }
 
+  if (ecosystems.length !== selectedEcosystems.length) {
+    return { error: 'Some selected ecosystems were not recognized. Please try again.' }
+  }
+
   // Activate each selected ecosystem
   for (const eco of ecosystems) {
     await activateEcosystem(supabase, org.id, eco.id)

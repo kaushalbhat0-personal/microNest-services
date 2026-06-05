@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Card, CardBody, StatusBadge } from '@micronest/ui'
+import { Card, CardBody, StatusBadge, CountUp, FadeIn } from '@micronest/ui'
 import { createServerClient } from '@micronest/auth'
 import { getUserOrganizations, isOrganizationEmpty, listVisitors, listComplaints, countComplaintsByStatus, countResidentsByStatus, listRooms, countPendingRent, countCollectedRent, countOverdueRent, countPendingRecords, countPublishedNotices } from '@micronest/db'
 import { DemoContent } from './demo-content'
@@ -120,102 +120,105 @@ export default async function StayNestOverviewPage() {
       </div>
 
       {/* Stats grid — Two rows of 4 */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Residents
-            </p>
-            <p className="mt-1 text-2xl font-bold text-green-600">
-              {activeResidentsCount}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">Active residents</p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Rooms
-            </p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
-              {totalRooms}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              {totalOccupied} occupied &middot; {availableRooms} available
-            </p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Pending Rent
-            </p>
-            <p className="mt-1 text-2xl font-bold text-red-600">
-              ₹{rentDue.toLocaleString()}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              {rentPendingCount} records
-            </p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Overdue Rent
-            </p>
-            <p className="mt-1 text-2xl font-bold text-red-700">
-              ₹{rentOverdue.toLocaleString()}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">Needs immediate action</p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Open Complaints
-            </p>
-            <p className="mt-1 text-2xl font-bold text-amber-600">
-              {openComplaintsCount}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">Require attention</p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Visitors Today
-            </p>
-            <p className="mt-1 text-2xl font-bold text-blue-600">
-              {visitorsTodayCount}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">Logged entries today</p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Published Notices
-            </p>
-            <p className="mt-1 text-2xl font-bold text-purple-600">
-              {publishedNoticesCount}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">Active announcements</p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Rent Collected
-            </p>
-            <p className="mt-1 text-2xl font-bold text-green-600">
-              ₹{rentCollected.toLocaleString()}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">Total collected</p>
-          </CardBody>
-        </Card>
-      </div>
+      <FadeIn>
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardBody>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Residents
+              </p>
+              <p className="mt-1 text-2xl font-bold text-green-600">
+                <CountUp end={activeResidentsCount} />
+              </p>
+              <p className="mt-1 text-xs text-gray-500">Active residents</p>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Rooms
+              </p>
+              <p className="mt-1 text-2xl font-bold text-gray-900">
+                <CountUp end={totalRooms} />
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                <CountUp end={totalOccupied} /> occupied &middot; <CountUp end={availableRooms} /> available
+              </p>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Pending Rent
+              </p>
+              <p className="mt-1 text-2xl font-bold text-red-600">
+                ₹<CountUp end={rentDue} />
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                <CountUp end={rentPendingCount} /> records
+              </p>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Overdue Rent
+              </p>
+              <p className="mt-1 text-2xl font-bold text-red-700">
+                ₹<CountUp end={rentOverdue} />
+              </p>
+              <p className="mt-1 text-xs text-gray-500">Needs immediate action</p>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Open Complaints
+              </p>
+              <p className="mt-1 text-2xl font-bold text-amber-600">
+                <CountUp end={openComplaintsCount} />
+              </p>
+              <p className="mt-1 text-xs text-gray-500">Require attention</p>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Visitors Today
+              </p>
+              <p className="mt-1 text-2xl font-bold text-blue-600">
+                <CountUp end={visitorsTodayCount} />
+              </p>
+              <p className="mt-1 text-xs text-gray-500">Logged entries today</p>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Published Notices
+              </p>
+              <p className="mt-1 text-2xl font-bold text-purple-600">
+                <CountUp end={publishedNoticesCount} />
+              </p>
+              <p className="mt-1 text-xs text-gray-500">Active announcements</p>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                Rent Collected
+              </p>
+              <p className="mt-1 text-2xl font-bold text-green-600">
+                ₹<CountUp end={rentCollected} />
+              </p>
+              <p className="mt-1 text-xs text-gray-500">Total collected</p>
+            </CardBody>
+          </Card>
+        </div>
+      </FadeIn>
 
       {/* Recent Visitors + Recent Complaints */}
+      <FadeIn delay={50}>
       <div className="mb-8 grid gap-6 lg:grid-cols-2">
         {/* Recent Visitors */}
         <Card padding="none">
@@ -317,8 +320,10 @@ export default async function StayNestOverviewPage() {
           </div>
         </Card>
       </div>
+      </FadeIn>
 
       {/* Quick actions */}
+      <FadeIn delay={100}>
       <div className="flex flex-wrap gap-3">
         <Link
           href="/dashboard/staynest/residents"
@@ -351,6 +356,7 @@ export default async function StayNestOverviewPage() {
             ← View notices
           </Link>
         </div>
+      </FadeIn>
     </div>
   )
 }

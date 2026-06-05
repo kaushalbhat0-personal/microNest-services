@@ -1,4 +1,5 @@
 import { DashboardNav } from '@micronest/ui'
+import { signout } from '@/lib/auth/actions'
 
 export default function DashboardLayout({
   children,
@@ -7,7 +8,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="flex min-h-screen">
-      <DashboardNav />
+      <DashboardNav logoutAction={signout} />
       <main className="flex-1 overflow-y-auto bg-gray-50 pt-16 md:pt-0 p-4 md:p-8">
         {children}
       </main>

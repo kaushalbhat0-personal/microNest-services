@@ -9,6 +9,7 @@ import { Logo } from './Logo'
 const links = [
   { href: '/dashboard', label: 'Dashboard', icon: '◉' },
   { href: '/dashboard/ecosystems', label: 'Ecosystems', icon: '⊞' },
+  { href: '/dashboard/settings', label: 'Settings', icon: '⚙' },
 ]
 
 function NavItems({ pathname }: { pathname: string }) {
@@ -33,7 +34,21 @@ function NavItems({ pathname }: { pathname: string }) {
   )
 }
 
-export function DashboardNav() {
+function LogoutButton({ action }: { action: () => void }) {
+  return (
+    <form action={action}>
+      <button
+        type="submit"
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+      >
+        <span className="text-lg">⏻</span>
+        Log out
+      </button>
+    </form>
+  )
+}
+
+export function DashboardNav({ logoutAction }: { logoutAction?: () => void }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -90,6 +105,11 @@ export function DashboardNav() {
         <nav className="flex-1 space-y-1 px-3 py-4" onClick={() => setMobileOpen(false)}>
           <NavItems pathname={pathname} />
         </nav>
+        {logoutAction && (
+          <div className="border-t border-gray-200 px-3 py-3">
+            <LogoutButton action={logoutAction} />
+          </div>
+        )}
       </aside>
 
       {/* Desktop sidebar */}
@@ -104,9 +124,11 @@ export function DashboardNav() {
           <NavItems pathname={pathname} />
         </nav>
 
-        <div className="border-t border-gray-200 px-3 py-3">
-          {/* TODO: Add user menu with avatar, settings, logout */}
-        </div>
+        {logoutAction && (
+          <div className="border-t border-gray-200 px-3 py-3">
+            <LogoutButton action={logoutAction} />
+          </div>
+        )}
       </aside>
     </>
   )

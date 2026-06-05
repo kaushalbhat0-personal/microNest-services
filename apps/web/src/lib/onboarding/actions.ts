@@ -87,7 +87,10 @@ export async function completeOnboarding(
 
   // Activate each selected ecosystem
   for (const eco of ecosystems) {
-    await activateEcosystem(supabase, org.id, eco.id)
+    const activation = await activateEcosystem(supabase, org.id, eco.id)
+    if (!activation) {
+      return { error: `Failed to activate ecosystem "${eco.slug}". Please try again.` }
+    }
     await createAuditLog(supabase, {
       organization_id: org.id,
       user_id: user.id,

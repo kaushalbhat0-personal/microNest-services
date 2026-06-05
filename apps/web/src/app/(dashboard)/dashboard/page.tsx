@@ -50,11 +50,11 @@ export default async function DashboardPage() {
       {activatedEcosystems.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {activatedEcosystems.map((ecosystem) => (
-            <Link
+              <Link
               key={ecosystem.id}
               href={ecosystemHref[ecosystem.slug] ?? `/dashboard/${ecosystem.slug}`}
             >
-              <Card className="h-full transition-shadow hover:shadow-md">
+              <Card className="h-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-md">
                 <CardBody>
                   <Badge variant="indigo">{ecosystem.name}</Badge>
                   <h2 className="mt-3 text-lg font-semibold text-gray-900">

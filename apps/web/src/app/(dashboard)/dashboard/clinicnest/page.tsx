@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Card, CardBody, StatusBadge } from '@micronest/ui'
+import { Card, CardBody, StatusBadge, CountUp, FadeIn } from '@micronest/ui'
 import {
   CLINIC_STATS,
   APPOINTMENT_PLACEHOLDERS,
@@ -40,6 +40,7 @@ export default function ClinicNestOverviewPage() {
         </p>
       </div>
 
+      <FadeIn>
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardBody>
@@ -47,10 +48,10 @@ export default function ClinicNestOverviewPage() {
               Today&apos;s Appointments
             </p>
             <p className="mt-1 text-2xl font-bold text-gray-900">
-              {CLINIC_STATS.todayAppointments}
+              <CountUp end={CLINIC_STATS.todayAppointments} />
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              {CLINIC_STATS.completedToday} completed so far
+              <CountUp end={CLINIC_STATS.completedToday} /> completed so far
             </p>
           </CardBody>
         </Card>
@@ -60,7 +61,7 @@ export default function ClinicNestOverviewPage() {
               Total Patients
             </p>
             <p className="mt-1 text-2xl font-bold text-teal-600">
-              {CLINIC_STATS.totalPatients}
+              <CountUp end={CLINIC_STATS.totalPatients} />
             </p>
             <p className="mt-1 text-xs text-gray-500">Registered</p>
           </CardBody>
@@ -71,7 +72,7 @@ export default function ClinicNestOverviewPage() {
               Active Prescriptions
             </p>
             <p className="mt-1 text-2xl font-bold text-amber-600">
-              {CLINIC_STATS.activePrescriptions}
+              <CountUp end={CLINIC_STATS.activePrescriptions} />
             </p>
             <p className="mt-1 text-xs text-gray-500">In progress</p>
           </CardBody>
@@ -82,13 +83,15 @@ export default function ClinicNestOverviewPage() {
               Doctors on Duty
             </p>
             <p className="mt-1 text-2xl font-bold text-blue-600">
-              {CLINIC_STATS.doctorsOnDuty}
+              <CountUp end={CLINIC_STATS.doctorsOnDuty} />
             </p>
             <p className="mt-1 text-xs text-gray-500">Today</p>
           </CardBody>
         </Card>
       </div>
+      </FadeIn>
 
+      <FadeIn delay={50}>
       <Card padding="none">
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
           <h3 className="text-sm font-semibold text-gray-900">
@@ -123,7 +126,9 @@ export default function ClinicNestOverviewPage() {
           ))}
         </div>
       </Card>
+      </FadeIn>
 
+      <FadeIn delay={100}>
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
           href="/dashboard/clinicnest/appointments"
@@ -144,6 +149,7 @@ export default function ClinicNestOverviewPage() {
           ← Check prescriptions
         </Link>
       </div>
+      </FadeIn>
     </div>
   )
 }

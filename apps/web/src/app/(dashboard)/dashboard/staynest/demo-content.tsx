@@ -45,14 +45,14 @@ export function DemoContent() {
               loading={loading}
               onClick={handleSeed}
             >
-              Load Demo Data
+              🚀 Explore with Demo Data
             </Button>
             <Button
               variant="secondary"
               size="lg"
               onClick={() => router.push('/dashboard/staynest/rooms')}
             >
-              Start from scratch
+              Start Empty
             </Button>
           </div>
 

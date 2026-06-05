@@ -1,6 +1,5 @@
 export type { Json } from './types'
 export type {
-  Profile,
   Organization,
   OrganizationMember,
   Ecosystem,
@@ -25,12 +24,9 @@ export type {
 export type { Database, DBClient } from './types'
 export { createClient } from './client'
 export {
-  getProfile,
-  updateProfile,
   getUserOrganizations,
   getOrganization,
   getOrganizationBySlug,
-  getOrganizationMembers,
   getAvailableEcosystems,
   getOrganizationEcosystems,
   activateEcosystem,

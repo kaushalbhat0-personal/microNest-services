@@ -29,15 +29,6 @@ export type DBClient = SupabaseClient<Database, any, any, any, any>
 
 // ── Tables ───────────────────────────────────────────────────────────
 
-export interface Profile {
-  id: string
-  email: string
-  full_name: string | null
-  avatar_url: string | null
-  created_at: string
-  updated_at: string
-}
-
 export interface Organization {
   id: string
   name: string
@@ -215,12 +206,6 @@ export interface ProductFeedback {
 export interface Database {
   public: {
     Tables: {
-      profiles: {
-        Row: Profile
-        Insert: Omit<Profile, 'created_at' | 'updated_at'>
-        Update: Partial<Omit<Profile, 'id'>>
-        Relationships: []
-      }
       organizations: {
         Row: Organization
         Insert: Omit<Organization, 'id' | 'created_at' | 'updated_at' | 'logo_url'> & { logo_url?: string | null }

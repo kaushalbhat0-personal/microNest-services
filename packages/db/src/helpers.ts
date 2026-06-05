@@ -1,6 +1,5 @@
 import type {
   DBClient,
-  Profile,
   Organization,
   OrganizationMember,
   OrganizationEcosystem,
@@ -20,34 +19,6 @@ export async function userHasOrganization(
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
   return (count ?? 0) > 0
-}
-
-// ── Profile ────────────────────────────────────────────────────────────
-
-export async function getProfile(
-  supabase: DBClient,
-  userId: string
-): Promise<Profile | null> {
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single() as unknown as { data: Profile | null; error: unknown }
-  return data
-}
-
-export async function updateProfile(
-  supabase: DBClient,
-  userId: string,
-  updates: Partial<Pick<Profile, 'full_name' | 'avatar_url'>>
-): Promise<Profile | null> {
-  const { data } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('id', userId)
-    .select('*')
-    .single() as unknown as { data: Profile | null; error: unknown }
-  return data
 }
 
 // ── Organizations ──────────────────────────────────────────────────────
@@ -95,27 +66,6 @@ export async function getOrganizationBySlug(
     .eq('slug', slug)
     .single() as unknown as { data: Organization | null; error: unknown }
   return data
-}
-
-// ── Organization Members ───────────────────────────────────────────────
-
-export async function getOrganizationMembers(
-  supabase: DBClient,
-  organizationId: string
-): Promise<(OrganizationMember & { profile: Profile })[]> {
-  const { data } = await supabase
-    .from('organization_members')
-    .select('*, profile:profiles(*)')
-    .eq('organization_id', organizationId) as any
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return (data ?? []).map((m: any) => ({
-    id: m.id,
-    organization_id: m.organization_id,
-    user_id: m.user_id,
-    role: m.role,
-    created_at: m.created_at,
-    profile: m.profile as Profile,
-  }))
 }
 
 // ── Ecosystems ─────────────────────────────────────────────────────────

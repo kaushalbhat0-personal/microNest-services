@@ -147,10 +147,11 @@ export function ResidentsContent({
 
   const columns: Column<StayNestResident>[] = [
     { header: 'Full Name', accessor: (r) => r.full_name },
-    { header: 'Phone', accessor: (r) => r.phone },
+    { header: 'Phone', accessor: (r) => r.phone, hideOnMobile: true },
     { header: 'Room', accessor: (r) => r.room_number },
     {
       header: 'Gender',
+      hideOnMobile: true,
       accessor: (r) =>
         r.gender ? (
           <span className="text-sm text-gray-600">{genderLabel[r.gender] ?? r.gender}</span>
@@ -160,6 +161,7 @@ export function ResidentsContent({
     },
     {
       header: 'Joining Date',
+      hideOnMobile: true,
       accessor: (r) => (
         <span className="text-xs text-gray-500">{formatDate(r.joining_date)}</span>
       ),
@@ -359,6 +361,36 @@ export function ResidentsContent({
           columns={columns}
           data={initialResidents}
           keyExtractor={(r) => r.id}
+          renderCard={(r) => (
+            <div>
+              <div className="flex items-center justify-between">
+                <p className="font-medium text-gray-900">{r.full_name}</p>
+                <StatusBadge variant={statusVariant[r.status]}>
+                  {statusLabel[r.status]}
+                </StatusBadge>
+              </div>
+              <div className="mt-2 space-y-1 text-sm text-gray-500">
+                <p>Room {r.room_number} &middot; {r.phone}</p>
+                <p>Joined {formatDate(r.joining_date)}</p>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={() => handleEdit(r)}
+                  className="min-h-[44px] rounded-md bg-indigo-50 px-4 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+                >
+                  Edit
+                </button>
+                {r.status === 'active' && (
+                  <button
+                    onClick={() => handleDeactivate(r.id)}
+                    className="min-h-[44px] rounded-md bg-gray-50 px-4 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                  >
+                    Deactivate
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         />
       )}
     </div>

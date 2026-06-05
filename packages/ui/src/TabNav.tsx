@@ -34,13 +34,13 @@ export function TabNav({ tabs, activeColor = 'amber' }: TabNavProps) {
   const colors = activeColors[activeColor]
 
   return (
-    <nav className="flex gap-1 border-b border-gray-200">
+    <nav className="flex gap-1 overflow-x-auto border-b border-gray-200">
       {tabs.map((tab) => (
         <Link
           key={tab.href}
           href={tab.href}
           className={clsx(
-            'border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
+            'min-h-[44px] whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
             pathname === tab.href
               ? colors.active
               : `border-transparent text-gray-500 ${colors.hover}`

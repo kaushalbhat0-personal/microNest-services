@@ -147,6 +147,7 @@ export function RoomsContent({
     { header: 'Room', accessor: (r) => <span className="font-mono text-sm">{r.room_number}</span> },
     {
       header: 'Type',
+      hideOnMobile: true,
       accessor: (r) =>
         r.room_type ? (
           <span className="text-sm text-gray-600">{roomTypeLabel[r.room_type] ?? r.room_type}</span>
@@ -348,6 +349,36 @@ export function RoomsContent({
           columns={columns}
           data={initialRooms}
           keyExtractor={(r) => r.id}
+          renderCard={(r) => (
+            <div>
+              <div className="flex items-center justify-between">
+                <p className="font-mono font-medium text-gray-900">Room {r.room_number}</p>
+                <StatusBadge variant={statusVariant[r.status]}>
+                  {statusLabel[r.status]}
+                </StatusBadge>
+              </div>
+              <div className="mt-2 space-y-1 text-sm text-gray-500">
+                <p>{r.room_type ? roomTypeLabel[r.room_type] : '—'} &middot; {r.occupied_count}/{r.capacity} occupied</p>
+                <p className="font-medium text-gray-700">{formatCurrency(r.monthly_rent)}/mo</p>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={() => handleEdit(r)}
+                  className="min-h-[44px] rounded-md bg-indigo-50 px-4 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+                >
+                  Edit
+                </button>
+                {r.status === 'active' && (
+                  <button
+                    onClick={() => handleDeactivate(r.id)}
+                    className="min-h-[44px] rounded-md bg-gray-50 px-4 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                  >
+                    Deactivate
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         />
       )}
     </div>

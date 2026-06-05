@@ -131,10 +131,11 @@ export function ComplaintsContent({
 
   const columns: Column<StayNestComplaint>[] = [
     { header: 'Title', accessor: (c) => c.title },
-    { header: 'Room', accessor: (c) => c.room_number },
-    { header: 'Raised By', accessor: (c) => c.raised_by },
+    { header: 'Room', accessor: (c) => c.room_number, hideOnMobile: true },
+    { header: 'Raised By', accessor: (c) => c.raised_by, hideOnMobile: true },
     {
       header: 'Date',
+      hideOnMobile: true,
       accessor: (c) => (
         <span className="text-xs text-gray-500">{formatDate(c.created_at)}</span>
       ),
@@ -288,6 +289,45 @@ export function ComplaintsContent({
           columns={columns}
           data={initialComplaints}
           keyExtractor={(c) => c.id}
+          renderCard={(c) => (
+            <div>
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{c.title}</p>
+                  <p className="mt-0.5 text-sm text-gray-500">
+                    Room {c.room_number} &middot; {c.raised_by}
+                  </p>
+                </div>
+                <StatusBadge variant={priorityVariant[c.priority]}>
+                  {priorityLabel[c.priority]}
+                </StatusBadge>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <StatusBadge variant={statusVariant[c.status]}>
+                  {statusLabel[c.status]}
+                </StatusBadge>
+                <span className="text-xs text-gray-400">{formatDate(c.created_at)}</span>
+              </div>
+              {(c.status === 'open' || c.status === 'in-progress') && (
+                <div className="mt-3 flex gap-2">
+                  {c.status === 'open' && (
+                    <button
+                      onClick={() => handleUpdateStatus(c.id, 'in-progress')}
+                      className="min-h-[44px] rounded-md bg-amber-50 px-4 text-sm font-medium text-amber-700 hover:bg-amber-100"
+                    >
+                      In Progress
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleUpdateStatus(c.id, 'resolved')}
+                    className="min-h-[44px] rounded-md bg-green-50 px-4 text-sm font-medium text-green-700 hover:bg-green-100"
+                  >
+                    Resolve
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         />
       )}
     </div>

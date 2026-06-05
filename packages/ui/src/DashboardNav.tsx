@@ -14,7 +14,7 @@ export function DashboardNav() {
   const pathname = usePathname()
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-gray-200 bg-white">
+    <aside className="flex h-full w-64 flex-col border-r border-gray-200 bg-white max-md:hidden">
       <div className="flex items-center border-b border-gray-200 px-6 py-4">
         <Link href="/dashboard">
           <Logo size="sm" />

@@ -1,7 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database, StayNestVisitor } from '../types'
-
-type DBClient = SupabaseClient<Database>
+import type { DBClient, StayNestVisitor } from '../types'
 
 export async function listVisitors(
   supabase: DBClient,

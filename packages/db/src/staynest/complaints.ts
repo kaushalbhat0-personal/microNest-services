@@ -1,7 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database, StayNestComplaint } from '../types'
-
-type DBClient = SupabaseClient<Database>
+import type { DBClient, StayNestComplaint } from '../types'
 
 export async function listComplaints(
   supabase: DBClient,
@@ -11,7 +8,7 @@ export async function listComplaints(
     .from('staynest_complaints')
     .select('*')
     .eq('organization_id', organizationId)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false }) as unknown as { data: StayNestComplaint[] | null; error: unknown }
   return data ?? []
 }
 
@@ -25,7 +22,7 @@ export async function getComplaintById(
     .select('*')
     .eq('id', id)
     .eq('organization_id', organizationId)
-    .single()
+    .single() as unknown as { data: StayNestComplaint | null; error: unknown }
   return data
 }
 
@@ -53,7 +50,7 @@ export async function createComplaint(
       created_by: userId,
     })
     .select('*')
-    .single()
+    .single() as unknown as { data: StayNestComplaint | null; error: unknown }
   return data
 }
 
@@ -79,7 +76,7 @@ export async function updateComplaintStatus(
     .eq('id', id)
     .eq('organization_id', organizationId)
     .select('*')
-    .single()
+    .single() as unknown as { data: StayNestComplaint | null; error: unknown }
   return data
 }
 
@@ -90,7 +87,7 @@ export async function countComplaintsByStatus(
   const { data } = await supabase
     .from('staynest_complaints')
     .select('status')
-    .eq('organization_id', organizationId)
+    .eq('organization_id', organizationId) as unknown as { data: { status: string }[] | null; error: unknown }
 
   const open = (data ?? []).filter((c) => c.status === 'open').length
   const inProgress = (data ?? []).filter((c) => c.status === 'in-progress').length

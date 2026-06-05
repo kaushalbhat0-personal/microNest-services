@@ -1,7 +1,8 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@micronest/db'
 import { userHasOrganization } from '@micronest/db'
+import type { DBClient } from '@micronest/db'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -14,7 +15,7 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
@@ -62,7 +63,7 @@ export async function middleware(request: NextRequest) {
     const isDashboardRoute = request.nextUrl.pathname.startsWith('/dashboard')
 
     if (isOnboardingPage || isDashboardRoute) {
-      const hasOrg = await userHasOrganization(supabase, user.id)
+      const hasOrg = await userHasOrganization(supabase as unknown as DBClient, user.id)
 
       // Already onboarded but still on onboarding page → redirect to dashboard
       if (isOnboardingPage && hasOrg) {

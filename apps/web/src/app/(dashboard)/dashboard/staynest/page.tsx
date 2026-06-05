@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Card, CardBody, StatusBadge } from '@micronest/ui'
 import { createServerClient } from '@micronest/auth'
-import { getUserOrganizations, listVisitors, listComplaints, countComplaintsByStatus, countResidentsByStatus, listRooms, countPendingRent, countCollectedRent, countOverdueRent, countPendingRecords } from '@micronest/db'
+import { getUserOrganizations, isOrganizationEmpty, listVisitors, listComplaints, countComplaintsByStatus, countResidentsByStatus, listRooms, countPendingRent, countCollectedRent, countOverdueRent, countPendingRecords, countPublishedNotices } from '@micronest/db'
+import { DemoContent } from './demo-content'
 
 export const metadata: Metadata = {
   title: 'StayNest',
@@ -40,6 +41,21 @@ export default async function StayNestOverviewPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
+  let isEmpty = true
+  let orgId: string | null = null
+
+  if (user) {
+    const orgs = await getUserOrganizations(supabase, user.id)
+    if (orgs.length > 0) {
+      orgId = orgs[0].id
+      isEmpty = await isOrganizationEmpty(supabase, orgId)
+    }
+  }
+
+  if (isEmpty && orgId) {
+    return <DemoContent />
+  }
+
   let recentVisitors: { id: string; name: string; room_number: string; purpose: string; status: string; check_in_at: string }[] = []
   let recentComplaints: { id: string; title: string; room_number: string; raised_by: string; status: string; created_at: string }[] = []
   let openComplaintsCount = 0
@@ -51,75 +67,106 @@ export default async function StayNestOverviewPage() {
   let rentCollected = 0
   let rentOverdue = 0
   let rentPendingCount = 0
+  let publishedNoticesCount = 0
+  let visitorsTodayCount = 0
 
-  if (user) {
-    const orgs = await getUserOrganizations(supabase, user.id)
-    if (orgs.length > 0) {
-      const orgId = orgs[0].id
+  if (user && orgId) {
+    const allVisitors = await listVisitors(supabase, orgId)
+    recentVisitors = allVisitors.slice(0, 3)
 
-      const allVisitors = await listVisitors(supabase, orgId)
-      recentVisitors = allVisitors.slice(0, 3)
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    visitorsTodayCount = allVisitors.filter(
+      (v) => new Date(v.check_in_at) >= todayStart
+    ).length
 
-      const allComplaints = await listComplaints(supabase, orgId)
-      recentComplaints = allComplaints.slice(0, 3)
+    const allComplaints = await listComplaints(supabase, orgId)
+    recentComplaints = allComplaints.slice(0, 3)
 
-      const complaintCounts = await countComplaintsByStatus(supabase, orgId)
-      openComplaintsCount = complaintCounts.open
+    const complaintCounts = await countComplaintsByStatus(supabase, orgId)
+    openComplaintsCount = complaintCounts.open
 
-      const residentCounts = await countResidentsByStatus(supabase, orgId)
-      activeResidentsCount = residentCounts.active
+    const residentCounts = await countResidentsByStatus(supabase, orgId)
+    activeResidentsCount = residentCounts.active
 
-      const rooms = await listRooms(supabase, orgId)
-      totalRooms = rooms.length
-      totalCapacity = rooms.reduce((sum, r) => sum + r.capacity, 0)
-      totalOccupied = rooms.reduce((sum, r) => sum + r.occupied_count, 0)
+    const rooms = await listRooms(supabase, orgId)
+    totalRooms = rooms.length
+    totalCapacity = rooms.reduce((sum, r) => sum + r.capacity, 0)
+    totalOccupied = rooms.reduce((sum, r) => sum + r.occupied_count, 0)
 
-      const [pending, collected, overdue, pendingRecs] = await Promise.all([
-        countPendingRent(supabase, orgId),
-        countCollectedRent(supabase, orgId),
-        countOverdueRent(supabase, orgId),
-        countPendingRecords(supabase, orgId),
-      ])
-      rentDue = pending + overdue
-      rentCollected = collected
-      rentOverdue = overdue
-      rentPendingCount = pendingRecs
-    }
+    const [pending, collected, overdue, pendingRecs, publishedNotices] = await Promise.all([
+      countPendingRent(supabase, orgId),
+      countCollectedRent(supabase, orgId),
+      countOverdueRent(supabase, orgId),
+      countPendingRecords(supabase, orgId),
+      countPublishedNotices(supabase, orgId),
+    ])
+    rentDue = pending + overdue
+    rentCollected = collected
+    rentOverdue = overdue
+    rentPendingCount = pendingRecs
+    publishedNoticesCount = publishedNotices
   }
+
+  const availableRooms = totalRooms - totalOccupied
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">StayNest Overview</h1>
         <p className="mt-1 text-sm text-gray-500">
-          At a glance view of your property.
+          Your PG control center — everything at a glance.
         </p>
       </div>
 
-      {/* Stats grid */}
+      {/* Stats grid — Two rows of 4 */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardBody>
             <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Occupancy
+              Residents
+            </p>
+            <p className="mt-1 text-2xl font-bold text-green-600">
+              {activeResidentsCount}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">Active residents</p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+              Rooms
             </p>
             <p className="mt-1 text-2xl font-bold text-gray-900">
-              {totalOccupied}/{totalCapacity}
+              {totalRooms}
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              {totalRooms} room{totalRooms !== 1 ? 's' : ''}
+              {totalOccupied} occupied &middot; {availableRooms} available
             </p>
           </CardBody>
         </Card>
         <Card>
           <CardBody>
             <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Active Residents
+              Pending Rent
             </p>
-            <p className="mt-1 text-2xl font-bold text-green-600">
-              {activeResidentsCount}
+            <p className="mt-1 text-2xl font-bold text-red-600">
+              ₹{rentDue.toLocaleString()}
             </p>
-            <p className="mt-1 text-xs text-gray-500">Currently staying</p>
+            <p className="mt-1 text-xs text-gray-500">
+              {rentPendingCount} records
+            </p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+              Overdue Rent
+            </p>
+            <p className="mt-1 text-2xl font-bold text-red-700">
+              ₹{rentOverdue.toLocaleString()}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">Needs immediate action</p>
           </CardBody>
         </Card>
         <Card>
@@ -136,20 +183,40 @@ export default async function StayNestOverviewPage() {
         <Card>
           <CardBody>
             <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-              Pending Rent
+              Visitors Today
             </p>
-            <p className="mt-1 text-2xl font-bold text-red-600">
-              ₹{rentDue.toLocaleString()}
+            <p className="mt-1 text-2xl font-bold text-blue-600">
+              {visitorsTodayCount}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
-              {rentPendingCount} records pending
+            <p className="mt-1 text-xs text-gray-500">Logged entries today</p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+              Published Notices
             </p>
+            <p className="mt-1 text-2xl font-bold text-purple-600">
+              {publishedNoticesCount}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">Active announcements</p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+              Rent Collected
+            </p>
+            <p className="mt-1 text-2xl font-bold text-green-600">
+              ₹{rentCollected.toLocaleString()}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">Total collected</p>
           </CardBody>
         </Card>
       </div>
 
       {/* Recent Visitors + Recent Complaints */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="mb-8 grid gap-6 lg:grid-cols-2">
         {/* Recent Visitors */}
         <Card padding="none">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
@@ -252,32 +319,38 @@ export default async function StayNestOverviewPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3">
         <Link
           href="/dashboard/staynest/residents"
-          className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+          className="min-h-[44px] inline-flex items-center rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
         >
           ← Manage residents
         </Link>
         <Link
           href="/dashboard/staynest/visitors"
-          className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+          className="min-h-[44px] inline-flex items-center rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
         >
           ← Log a visitor
         </Link>
         <Link
           href="/dashboard/staynest/complaints"
-          className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+          className="min-h-[44px] inline-flex items-center rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
         >
           ← Raise a complaint
         </Link>
-        <Link
-          href="/dashboard/staynest/rent"
-          className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
-        >
-          ← Check rent status
-        </Link>
-      </div>
+          <Link
+            href="/dashboard/staynest/rent"
+            className="min-h-[44px] inline-flex items-center rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+          >
+            ← Check rent status
+          </Link>
+          <Link
+            href="/dashboard/staynest/notices"
+            className="min-h-[44px] inline-flex items-center rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+          >
+            ← View notices
+          </Link>
+        </div>
     </div>
   )
 }

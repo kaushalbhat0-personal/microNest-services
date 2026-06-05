@@ -51,15 +51,16 @@ export async function completeOnboarding(
   }
 
   // Create organization
-  const { data: org, error: orgError } = await supabase
+  const orgResult = await supabase
     .from('organizations')
     .insert({ name: orgName.trim(), slug })
-    .select('*')
-    .single()
+    .select('*') as unknown as { data: unknown[] | null; error: unknown }
 
-  if (orgError || !org) {
+  if (orgResult.error || !orgResult.data || orgResult.data.length === 0) {
     return { error: 'Failed to create organization. Please try again.' }
   }
+
+  const org = orgResult.data[0] as { id: string; slug: string; name: string }
 
   // Add user as owner
   const { error: memberError } = await supabase
@@ -74,7 +75,7 @@ export async function completeOnboarding(
   const { data: ecosystems } = await supabase
     .from('ecosystems')
     .select('id, slug')
-    .in('slug', selectedEcosystems)
+    .in('slug', selectedEcosystems as ('staynest' | 'clinicnest' | 'freelancenest' | 'propertynest')[])
 
   if (!ecosystems || ecosystems.length === 0) {
     return { error: 'Selected ecosystems not found.' }

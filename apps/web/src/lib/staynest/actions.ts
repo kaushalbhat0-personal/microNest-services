@@ -15,7 +15,13 @@ import {
   deactivateRoom as dbDeactivateRoom,
   createRentRecord as dbCreateRentRecord,
   markRentPaid as dbMarkRentPaid,
+  createNotice as dbCreateNotice,
+  updateNotice as dbUpdateNotice,
+  publishNotice as dbPublishNotice,
+  archiveNotice as dbArchiveNotice,
   createAuditLog,
+  isOrganizationEmpty,
+  seedDemoData as dbSeedDemoData,
 } from '@micronest/db'
 
 export async function createVisitor(
@@ -411,7 +417,7 @@ export async function updateRoom(
       capacity: parseInt(formData.get('capacity') as string) || 1,
       occupied_count: parseInt(formData.get('occupied_count') as string) || 0,
       monthly_rent: parseInt(formData.get('monthly_rent') as string) || 0,
-      status: formData.get('status') as string,
+      status: formData.get('status') as 'active' | 'inactive' | 'maintenance' | undefined,
       notes: formData.get('notes') as string || null,
     }
   )
@@ -548,4 +554,202 @@ export async function markRentPaid(
 
   revalidatePath('/dashboard/staynest/rent')
   revalidatePath('/dashboard/staynest')
+}
+
+export async function createNotice(
+  _prev: { error?: string | null; success?: boolean },
+  formData: FormData
+) {
+  const supabase = await createServerClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated', success: false }
+
+  const { data: orgs } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .single()
+
+  if (!orgs) return { error: 'No organization found', success: false }
+
+  const notice = await dbCreateNotice(
+    supabase,
+    orgs.organization_id,
+    {
+      title: formData.get('title') as string,
+      content: formData.get('content') as string,
+    },
+    user.id
+  )
+
+  if (!notice) return { error: 'Failed to create notice.', success: false }
+
+  await createAuditLog(supabase, {
+    organization_id: orgs.organization_id,
+    user_id: user.id,
+    action: 'notice.created',
+    entity_type: 'staynest_notice',
+    entity_id: notice.id,
+  })
+
+  revalidatePath('/dashboard/staynest/notices')
+  revalidatePath('/dashboard/staynest')
+  return { error: null, success: true }
+}
+
+export async function updateNotice(
+  _prev: { error?: string | null; success?: boolean },
+  formData: FormData
+) {
+  const supabase = await createServerClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated', success: false }
+
+  const { data: orgs } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .single()
+
+  if (!orgs) return { error: 'No organization found', success: false }
+
+  const id = formData.get('id') as string
+  if (!id) return { error: 'Notice ID is required.', success: false }
+
+  const notice = await dbUpdateNotice(
+    supabase,
+    orgs.organization_id,
+    id,
+    {
+      title: formData.get('title') as string,
+      content: formData.get('content') as string,
+    }
+  )
+
+  if (!notice) return { error: 'Failed to update notice.', success: false }
+
+  await createAuditLog(supabase, {
+    organization_id: orgs.organization_id,
+    user_id: user.id,
+    action: 'notice.updated',
+    entity_type: 'staynest_notice',
+    entity_id: id,
+  })
+
+  revalidatePath('/dashboard/staynest/notices')
+  revalidatePath('/dashboard/staynest')
+  return { error: null, success: true }
+}
+
+export async function publishNotice(id: string) {
+  const supabase = await createServerClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: orgs } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .single()
+
+  if (!orgs) return { error: 'No organization found' }
+
+  const notice = await dbPublishNotice(supabase, orgs.organization_id, id)
+
+  if (!notice) return { error: 'Failed to publish notice.' }
+
+  await createAuditLog(supabase, {
+    organization_id: orgs.organization_id,
+    user_id: user.id,
+    action: 'notice.published',
+    entity_type: 'staynest_notice',
+    entity_id: id,
+  })
+
+  revalidatePath('/dashboard/staynest/notices')
+  revalidatePath('/dashboard/staynest')
+}
+
+export async function archiveNotice(id: string) {
+  const supabase = await createServerClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: orgs } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .single()
+
+  if (!orgs) return { error: 'No organization found' }
+
+  const notice = await dbArchiveNotice(supabase, orgs.organization_id, id)
+
+  if (!notice) return { error: 'Failed to archive notice.' }
+
+  await createAuditLog(supabase, {
+    organization_id: orgs.organization_id,
+    user_id: user.id,
+    action: 'notice.archived',
+    entity_type: 'staynest_notice',
+    entity_id: id,
+  })
+
+  revalidatePath('/dashboard/staynest/notices')
+  revalidatePath('/dashboard/staynest')
+}
+
+export async function seedDemoData() {
+  const supabase = await createServerClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: orgs } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .single()
+
+  if (!orgs) return { error: 'No organization found' }
+
+  const empty = await isOrganizationEmpty(supabase, orgs.organization_id)
+  if (!empty) return { error: 'Organization already has data. Demo data can only be seeded on an empty organization.' }
+
+  try {
+    await dbSeedDemoData(supabase, orgs.organization_id, user.id)
+  } catch {
+    return { error: 'Failed to seed demo data. Please try again.' }
+  }
+
+  await createAuditLog(supabase, {
+    organization_id: orgs.organization_id,
+    user_id: user.id,
+    action: 'demo.seeded',
+    entity_type: 'organization',
+    entity_id: orgs.organization_id,
+    metadata: { note: 'Demo data seeded for StayNest' },
+  })
+
+  revalidatePath('/dashboard/staynest')
+  return { error: null, success: true }
 }

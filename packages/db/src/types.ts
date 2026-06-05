@@ -23,6 +23,10 @@ export type EcosystemSlug =
   | 'freelancenest'
   | 'propertynest'
 
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+export type DBClient = SupabaseClient<Database, any, any, any, any>
+
 // ── Tables ───────────────────────────────────────────────────────────
 
 export interface Profile {
@@ -157,6 +161,18 @@ export interface StayNestRoom {
   updated_at: string
 }
 
+export interface StayNestNotice {
+  id: string
+  organization_id: string
+  title: string
+  content: string
+  status: 'draft' | 'published' | 'archived'
+  published_at: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
 export interface StayNestRentRecord {
   id: string
   organization_id: string
@@ -175,6 +191,25 @@ export interface StayNestRentRecord {
   updated_at: string
 }
 
+export type FeedbackCategory =
+  | 'rent' | 'rooms' | 'complaints' | 'visitors'
+  | 'electricity' | 'staff' | 'food' | 'deposits'
+  | 'attendance' | 'other'
+
+export type FeedbackStatus = 'new' | 'reviewed' | 'planned' | 'implemented'
+
+export interface ProductFeedback {
+  id: string
+  name: string
+  business_name: string
+  phone: string
+  ecosystem: string
+  category: FeedbackCategory
+  problem: string
+  status: FeedbackStatus
+  created_at: string
+}
+
 // ── Database type map ────────────────────────────────────────────────
 
 export interface Database {
@@ -184,61 +219,85 @@ export interface Database {
         Row: Profile
         Insert: Omit<Profile, 'created_at' | 'updated_at'>
         Update: Partial<Omit<Profile, 'id'>>
+        Relationships: []
       }
       organizations: {
         Row: Organization
-        Insert: Omit<Organization, 'id' | 'created_at' | 'updated_at'>
+        Insert: Omit<Organization, 'id' | 'created_at' | 'updated_at' | 'logo_url'> & { logo_url?: string | null }
         Update: Partial<Omit<Organization, 'id'>>
+        Relationships: []
       }
       organization_members: {
         Row: OrganizationMember
         Insert: Omit<OrganizationMember, 'id' | 'created_at'>
         Update: Partial<Omit<OrganizationMember, 'id'>>
+        Relationships: []
       }
       ecosystems: {
         Row: Ecosystem
         Insert: Omit<Ecosystem, 'id' | 'created_at'>
         Update: Partial<Omit<Ecosystem, 'id'>>
+        Relationships: []
       }
       organization_ecosystems: {
         Row: OrganizationEcosystem
         Insert: Omit<OrganizationEcosystem, 'id' | 'activated_at'>
         Update: Partial<Omit<OrganizationEcosystem, 'id'>>
+        Relationships: []
       }
       subscriptions: {
         Row: Subscription
         Insert: Omit<Subscription, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<Subscription, 'id'>>
+        Relationships: []
       }
       audit_logs: {
         Row: AuditLog
         Insert: Omit<AuditLog, 'id' | 'created_at'>
         Update: never
+        Relationships: []
       }
       staynest_visitors: {
         Row: StayNestVisitor
         Insert: Omit<StayNestVisitor, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<StayNestVisitor, 'id'>>
+        Relationships: []
       }
       staynest_complaints: {
         Row: StayNestComplaint
         Insert: Omit<StayNestComplaint, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<StayNestComplaint, 'id'>>
+        Relationships: []
       }
       staynest_residents: {
         Row: StayNestResident
         Insert: Omit<StayNestResident, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<StayNestResident, 'id'>>
+        Relationships: []
       }
       staynest_rooms: {
         Row: StayNestRoom
         Insert: Omit<StayNestRoom, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<StayNestRoom, 'id'>>
+        Relationships: []
       }
       staynest_rent_records: {
         Row: StayNestRentRecord
         Insert: Omit<StayNestRentRecord, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<StayNestRentRecord, 'id'>>
+        Relationships: []
+      }
+      staynest_notices: {
+        Row: StayNestNotice
+        Insert: Omit<StayNestNotice, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<StayNestNotice, 'id'>>
+        Relationships: []
+      }
+      product_feedback: {
+        Row: ProductFeedback
+        Insert: Omit<ProductFeedback, 'id' | 'created_at'>
+        Update: Partial<Omit<ProductFeedback, 'id'>>
+        Relationships: []
       }
     }
     Views: Record<string, never>

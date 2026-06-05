@@ -23,7 +23,7 @@ export const EXPLORER_ECOSYSTEMS: ExplorerEcosystem[] = [
       'Manage listings, tenants, payments, and operations for paying guest accommodations and hostels.',
     href: '/ecosystems/staynest',
     status: 'active',
-    toolCount: 3,
+    toolCount: 6,
     color: 'amber',
     icon: 'S',
   },

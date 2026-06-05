@@ -142,22 +142,26 @@ export function RentContent({
     }
   }, [form, resetForm, router])
 
+  const [payingId, setPayingId] = useState<string | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash')
+
   const handleMarkPaid = useCallback(
     async (id: string) => {
-      const method = prompt('Payment method (cash / upi / bank_transfer / other):')
-      if (!method) return
-      if (!['cash', 'upi', 'bank_transfer', 'other'].includes(method)) {
+      if (!paymentMethod || !['cash', 'upi', 'bank_transfer', 'other'].includes(paymentMethod)) {
         setError('Invalid payment method.')
         return
       }
-      const result = await markRentPaid(id, method as 'cash' | 'upi' | 'bank_transfer' | 'other')
+      setPayingId(id)
+      const result = await markRentPaid(id, paymentMethod as 'cash' | 'upi' | 'bank_transfer' | 'other')
+      setPayingId(null)
       if (result?.error) {
         setError(result.error)
       } else {
+        setPaymentMethod('cash')
         router.refresh()
       }
     },
-    [router]
+    [paymentMethod, router]
   )
 
   const columns: Column<StayNestRentRecord>[] = [
@@ -174,6 +178,7 @@ export function RentContent({
     },
     {
       header: 'Room',
+      hideOnMobile: true,
       accessor: (r) => {
         if (!r.room_id) return <span className="text-sm text-gray-400">—</span>
         const room = roomMap.get(r.room_id)
@@ -192,6 +197,7 @@ export function RentContent({
     },
     {
       header: 'Due Date',
+      hideOnMobile: true,
       accessor: (r) => (
         <span className="text-xs text-gray-500">{formatDate(r.due_date)}</span>
       ),
@@ -239,12 +245,12 @@ export function RentContent({
       />
 
       {/* Tabs */}
-      <div className="mb-6 flex gap-1 border-b border-gray-200">
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-gray-200">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`min-h-[44px] whitespace-nowrap px-4 text-sm font-medium transition-colors ${
               activeTab === tab.key
                 ? 'border-b-2 border-amber-600 text-amber-700'
                 : 'text-gray-500 hover:text-gray-700'
@@ -423,6 +429,25 @@ export function RentContent({
         </Card>
       )}
 
+      {/* Payment method selector (mobile-friendly replacement for prompt) */}
+      {filteredRecords.length > 0 && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2">
+          <label className="text-xs font-medium text-gray-600">
+            Payment method:
+          </label>
+          <select
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value)}
+            className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+          >
+            <option value="cash">Cash</option>
+            <option value="upi">UPI</option>
+            <option value="bank_transfer">Bank Transfer</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      )}
+
       {filteredRecords.length === 0 ? (
         <EmptyState
           title={
@@ -446,6 +471,37 @@ export function RentContent({
           columns={columns}
           data={filteredRecords}
           keyExtractor={(r) => r.id}
+          renderCard={(r) => {
+            const resident = residentMap.get(r.resident_id)
+            return (
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="font-medium text-gray-900">{resident?.full_name ?? 'Unknown'}</p>
+                  <StatusBadge variant={statusVariant[r.status]}>
+                    {statusLabel[r.status]}
+                  </StatusBadge>
+                </div>
+                <div className="mt-2 space-y-1 text-sm text-gray-500">
+                  <p className="font-medium text-gray-700">{formatCurrency(r.amount)}</p>
+                  <p>Due {formatDate(r.due_date)}</p>
+                </div>
+                {(r.status === 'pending' || r.status === 'overdue') && (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => handleMarkPaid(r.id)}
+                      disabled={payingId === r.id}
+                      className="min-h-[44px] w-full rounded-md bg-green-50 px-4 text-sm font-medium text-green-700 hover:bg-green-100 disabled:opacity-50"
+                    >
+                      {payingId === r.id ? 'Marking...' : 'Mark Paid'}
+                    </button>
+                  </div>
+                )}
+                {r.status === 'paid' && r.paid_at && (
+                  <p className="mt-2 text-xs text-gray-400">Paid {formatDate(r.paid_at)}</p>
+                )}
+              </div>
+            )
+          }}
         />
       )}
     </div>

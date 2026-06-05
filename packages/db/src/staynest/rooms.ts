@@ -1,7 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database, StayNestRoom } from '../types'
-
-type DBClient = SupabaseClient<Database>
+import type { DBClient, StayNestRoom } from '../types'
 
 export async function listRooms(
   supabase: DBClient,

@@ -12,13 +12,17 @@ export type {
   StayNestResident,
   StayNestRoom,
   StayNestRentRecord,
+  StayNestNotice,
 } from './types'
 export type {
   OrganizationRole,
   SubscriptionStatus,
   EcosystemSlug,
+  FeedbackCategory,
+  FeedbackStatus,
+  ProductFeedback,
 } from './types'
-export type { Database } from './types'
+export type { Database, DBClient } from './types'
 export { createClient } from './client'
 export {
   getProfile,
@@ -66,4 +70,17 @@ export {
   countCollectedRent,
   countOverdueRent,
   countPendingRecords,
+  listNotices,
+  getNoticeById,
+  createNotice,
+  updateNotice,
+  publishNotice,
+  archiveNotice,
+  countPublishedNotices,
+  isOrganizationEmpty,
+  seedDemoData,
 } from './staynest'
+export {
+  createProductFeedback,
+  listProductFeedback,
+} from './product-feedback'

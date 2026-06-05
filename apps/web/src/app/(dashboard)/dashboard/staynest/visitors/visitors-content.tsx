@@ -92,11 +92,12 @@ export function VisitorsContent({
 
   const columns: Column<StayNestVisitor>[] = [
     { header: 'Name', accessor: (v) => v.name },
-    { header: 'Phone', accessor: (v) => v.phone },
+    { header: 'Phone', accessor: (v) => v.phone, hideOnMobile: true },
     { header: 'Room', accessor: (v) => v.room_number },
-    { header: 'Purpose', accessor: (v) => v.purpose },
+    { header: 'Purpose', accessor: (v) => v.purpose, hideOnMobile: true },
     {
       header: 'Check In',
+      hideOnMobile: true,
       accessor: (v) => (
         <span className="text-xs text-gray-500">
           {formatDate(v.check_in_at)} {formatTime(v.check_in_at)}
@@ -238,6 +239,33 @@ export function VisitorsContent({
           columns={columns}
           data={initialVisitors}
           keyExtractor={(v) => v.id}
+          renderCard={(v) => (
+            <div>
+              <div className="flex items-center justify-between">
+                <p className="font-medium text-gray-900">{v.name}</p>
+                <StatusBadge variant={statusVariant[v.status]}>
+                  {statusLabel[v.status]}
+                </StatusBadge>
+              </div>
+              <div className="mt-1 space-y-0.5 text-sm text-gray-500">
+                <p>Room {v.room_number} &middot; {v.purpose}</p>
+                <p>{v.phone} &middot; Checked in {formatDate(v.check_in_at)}</p>
+                {v.check_out_at && (
+                  <p>Checked out {formatDate(v.check_out_at)}</p>
+                )}
+              </div>
+              {v.status === 'checked-in' && (
+                <div className="mt-3">
+                  <button
+                    onClick={() => handleCheckOut(v.id)}
+                    className="min-h-[44px] w-full rounded-md bg-amber-50 px-4 text-sm font-medium text-amber-700 hover:bg-amber-100"
+                  >
+                    Check Out
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         />
       )}
     </div>

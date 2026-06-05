@@ -1,6 +1,5 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
-  Database,
+  DBClient,
   Profile,
   Organization,
   OrganizationMember,
@@ -9,8 +8,6 @@ import type {
   Subscription,
   AuditLog,
 } from './types'
-
-type DBClient = SupabaseClient<Database>
 
 // ── Utility ─────────────────────────────────────────────────────────────
 
@@ -35,7 +32,7 @@ export async function getProfile(
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single()
+    .single() as unknown as { data: Profile | null; error: unknown }
   return data
 }
 
@@ -49,7 +46,7 @@ export async function updateProfile(
     .update(updates)
     .eq('id', userId)
     .select('*')
-    .single()
+    .single() as unknown as { data: Profile | null; error: unknown }
   return data
 }
 
@@ -84,7 +81,7 @@ export async function getOrganization(
     .from('organizations')
     .select('*')
     .eq('id', organizationId)
-    .single()
+    .single() as unknown as { data: Organization | null; error: unknown }
   return data
 }
 
@@ -96,7 +93,7 @@ export async function getOrganizationBySlug(
     .from('organizations')
     .select('*')
     .eq('slug', slug)
-    .single()
+    .single() as unknown as { data: Organization | null; error: unknown }
   return data
 }
 
@@ -129,7 +126,7 @@ export async function getAvailableEcosystems(
   const { data } = await supabase
     .from('ecosystems')
     .select('*')
-    .order('name')
+    .order('name') as unknown as { data: Ecosystem[] | null; error: unknown }
   return data ?? []
 }
 
@@ -165,10 +162,10 @@ export async function activateEcosystem(
     .insert({
       organization_id: organizationId,
       ecosystem_id: ecosystemId,
-      settings: settings ?? {},
+      settings: (settings ?? {}) as any,
     })
     .select('*')
-    .single()
+    .single() as unknown as { data: OrganizationEcosystem | null; error: unknown }
   return data
 }
 
@@ -182,7 +179,7 @@ export async function getOrganizationSubscription(
     .from('subscriptions')
     .select('*')
     .eq('organization_id', organizationId)
-    .single()
+    .single() as unknown as { data: Subscription | null; error: unknown }
   return data
 }
 
@@ -219,6 +216,6 @@ export async function getAuditLogs(
     .select('*')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false })
-    .range(options?.offset ?? 0, (options?.offset ?? 0) + (options?.limit ?? 50) - 1)
+    .range(options?.offset ?? 0, (options?.offset ?? 0) + (options?.limit ?? 50) - 1) as unknown as { data: AuditLog[] | null; error: unknown }
   return data ?? []
 }

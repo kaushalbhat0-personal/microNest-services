@@ -8,6 +8,8 @@ import { Button } from './Button'
 
 const links = [
   { href: '/', label: 'Home' },
+  { href: '/ecosystems/staynest', label: 'StayNest' },
+  { href: '/ecosystems/staynest#pricing', label: 'Pricing' },
   { href: '/ecosystems', label: 'Ecosystems' },
 ]
 

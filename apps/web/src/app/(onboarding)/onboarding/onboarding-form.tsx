@@ -34,9 +34,10 @@ export function OnboardingForm({
 }: {
   ecosystems: readonly Ecosystem[]
 }) {
-  const [state, formAction, isPending] = useActionState(completeOnboarding, {
-    error: null,
-  })
+  const [state, formAction, isPending] = useActionState(
+    completeOnboarding,
+    { error: null as string | null }
+  )
 
   return (
     <form action={formAction} className="space-y-6">

@@ -60,7 +60,7 @@ export default function RentReminderPage() {
 
   const columns: Column<RentEntry>[] = [
     { header: 'Tenant', accessor: (r) => r.tenantName },
-    { header: 'Room', accessor: (r) => r.roomNumber },
+    { header: 'Room', accessor: (r) => r.roomNumber, hideOnMobile: true },
     {
       header: 'Amount',
       accessor: (r) => (
@@ -71,6 +71,7 @@ export default function RentReminderPage() {
     },
     {
       header: 'Due Date',
+      hideOnMobile: true,
       accessor: (r) => (
         <span className="text-xs text-gray-500">
           {formatDate(r.dueDate)}
@@ -79,6 +80,7 @@ export default function RentReminderPage() {
     },
     {
       header: 'Month',
+      hideOnMobile: true,
       accessor: (r) => (
         <span className="text-xs text-gray-500">{r.month}</span>
       ),
@@ -148,12 +150,12 @@ export default function RentReminderPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="mb-4 flex gap-1">
+      <div className="mb-4 flex flex-wrap gap-2">
         {filters.map((f) => (
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`min-h-[44px] rounded-lg px-4 text-sm font-medium transition-colors ${
               filter === f.value
                 ? 'bg-amber-100 text-amber-700'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -184,6 +186,34 @@ export default function RentReminderPage() {
           columns={columns}
           data={filtered}
           keyExtractor={(r) => r.id}
+          renderCard={(r) => (
+            <div>
+              <div className="flex items-center justify-between">
+                <p className="font-medium text-gray-900">{r.tenantName}</p>
+                <StatusBadge variant={statusVariant[r.status]}>
+                  {statusLabel[r.status]}
+                </StatusBadge>
+              </div>
+              <div className="mt-2 space-y-1 text-sm text-gray-500">
+                <p className="font-medium text-gray-700">₹{r.amount.toLocaleString()}</p>
+                <p>Room {r.roomNumber} &middot; Due {formatDate(r.dueDate)}</p>
+                <p>{r.month}</p>
+              </div>
+              {r.status !== 'paid' && (
+                <div className="mt-3">
+                  <button
+                    onClick={() => handleMarkPaid(r.id)}
+                    className="min-h-[44px] w-full rounded-md bg-green-50 px-4 text-sm font-medium text-green-700 hover:bg-green-100"
+                  >
+                    Mark Paid
+                  </button>
+                </div>
+              )}
+              {r.status === 'paid' && r.paidDate && (
+                <p className="mt-2 text-xs text-gray-400">Paid {formatDate(r.paidDate)}</p>
+              )}
+            </div>
+          )}
         />
       )}
     </div>

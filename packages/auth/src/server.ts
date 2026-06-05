@@ -1,8 +1,8 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import type { Database } from '@micronest/db'
+import type { Database, DBClient } from '@micronest/db'
 
-export async function createClient() {
+export async function createClient(): Promise<DBClient> {
   const cookieStore = await cookies()
 
   return createServerClient<Database>(
@@ -13,7 +13,7 @@ export async function createClient() {
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
             try {
               cookieStore.set(name, value, options)
@@ -24,5 +24,5 @@ export async function createClient() {
         },
       },
     }
-  )
+  ) as unknown as DBClient
 }

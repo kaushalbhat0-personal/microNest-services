@@ -94,7 +94,7 @@ Production Status:
 - `packages/db/src/` also has `helpers.ts` for cross-cutting queries (profiles, orgs, audit logs).
 - The old monolithic `staynest.ts` has been deleted.
 
-## Marketing Site Redesign v2
+## Marketing Site Redesign v3
 
 **Date:** 2026-06-06
 
@@ -102,39 +102,44 @@ Production Status:
 
 | Section | Content |
 |---------|---------|
-| 1. Hero | "Run your business without spreadsheets" — dashboard mockup with live stats, two CTAs |
-| 2. Problem | 4 problem cards (PG Owners, Clinics, Freelancers, Real Estate) |
-| 3. Ecosystem Showcase | Large cards for StayNest (Live) and ClinicNest (Early Access) with screenshots, benefits, feature tags; smaller cards for FreelanceNest/PropertyNest (Coming Soon) |
-| 4. Why Choose | 3-column: Purpose Built, Unified Login, Grow Together |
-| 5. Real Screens | 4 dashboard mockups: Analytics, Rent Collection, Resident Directory, Maintenance Board |
-| 6. Social Proof | 3 testimonial cards (PG Owner, Clinic Owner, Freelancer) with generic placeholders |
-| 7. Pricing Preview | 3 tiers (Starter, Growth, Pro) with link to full pricing page |
-| 8. Final CTA | "Start with StayNest today." — Create Free Account |
+| 1. Hero | "One platform. Multiple business operating systems." — MicroNest Hub mockup showing activated ecosystems + cross-ecosystem metrics |
+| 2. Problem | Visual "stitched together tools → MicroNest" transition graphic (Excel, WhatsApp, Notebook, Sheets, Reminders → MicroNest) |
+| 3. Ecosystem Showcase | Horizontal product showcase rows (not cards) — StayNest and ClinicNest as full-width alternating rows with screenshots, metrics, CTAs; FreelanceNest/PropertyNest as dashed-border coming soon |
+| 4. Why MicroNest | 4 pillars with visual diagrams: One Login, Shared Billing, Shared Analytics, Shared Infrastructure |
+| 5. Product Ecosystem Map | MicroNest in center with four connected products showing activation flow |
+| 6. Social Proof | Launch metrics with animated CountUp counters: 1,000+ Residents, 500+ Payments, 100+ Maintenance, 50+ Properties |
+| 7. Roadmap | Timeline layout: StayNest (Available Now), ClinicNest (Early Access), FreelanceNest/PropertyNest (In Development) |
+| 8. Final CTA | "Start with one ecosystem. Expand when you're ready." — Create Free Account on dark background |
 
 ### Ecosystems Page Structure
 
-- **Header** — title + description
-- **Available Now** — Large featured cards for StayNest (Production Ready) and ClinicNest (Early Access) with screenshots, benefit lists, feature tags, dual CTAs
-- **Coming Soon** — Smaller cards for FreelanceNest and PropertyNest
-- **Ecosystem Roadmap** — Visual timeline with status indicators (Live → Early Access → In Development)
+- **Header** — "Choose your operating system" platform narrative
+- **Available Now** — Featured product showcase rows (Apple product page style) with bullet-feature lists, screenshots, dual CTAs
+- **Coming Soon** — Dashed-border cards with product descriptions and notification CTAs
+- **Roadmap** — Timeline with status indicators
 
 ### Mobile-First Strategy
 
 - All sections designed for 375px/390px/430px first
 - Single-column layout on mobile, multi-column on desktop
-- Floating bottom CTA (Start Free) appears on mobile after scrolling past hero
-- Full-screen navigation drawer with larger tap targets on mobile
-- Reduced text width, tighter spacing, one-column layouts
-- Sticky bottom CTA on marketing pages (homepage, StayNest page)
-- Larger tap targets throughout (min 44px on nav items, 48px on CTAs)
+- **Always-visible floating bottom CTA** with MicroNest branding and "Create Free Account" button (min 44px touch target)
+- Full-screen navigation drawer with backdrop
+- Horizontal screenshots stack vertically on mobile
+- Larger tap targets (min 44px on all interactive elements)
+- Reduced text blocks, product screenshots prioritized over copy
 
-### Conversion Goals
+### Conversion Improvements (v2 → v3)
 
-- **Mobile conversion rate** — Floating CTA reduces friction on mobile
-- **Signups** — Multiple CTAs throughout the page (hero, ecosystem cards, pricing, final CTA)
-- **Demo requests** — "Explore StayNest" and "See Ecosystems" CTAs lead to product discovery
-- **Trust** — Real screenshot mockups, social proof, transparent pricing
-- **Product understanding** — Problem → Solution → Ecosystem showcase → Real screens flow
+| Metric | v2 | v3 |
+|--------|----|----|
+| Hero narrative | "Run your business without spreadsheets" (product-focused) | "One platform. Multiple business operating systems." (platform-focused) |
+| Problem section | 4 industry-specific cards | Visual transition showing fragmented tools → unified platform |
+| Product showcase | Card grids | Horizontal rows (Apple product page style) |
+| Why choose | 3 cards | 4 pillars with diagrams |
+| Social proof | Testimonial cards | Animated metrics counters |
+| Roadmap | Included in ecosystems page | Dedicated section on homepage |
+| Mobile CTA | Appears after scroll | Always visible, branded |
+| Final CTA | "Start with StayNest today" | "Start with one ecosystem. Expand when you're ready." |
 
 ### Design System
 
@@ -146,30 +151,35 @@ Production Status:
 - Borders: `#ece7df` (border-light)
 - Navigation: cream background with backdrop blur
 - Buttons: pill-shaped, charcoal primary, bordered secondary
+- Mockups: Real dashboard interfaces (not illustrations)
+- Product showcases: Full-width alternating rows (not cards)
+- Pillar diagrams: Icon + description layouts
+- Ecosystem map: Center-hub diagram with connected products
+- Counters: Animated via CountUp component (cubic ease-out)
 
-### Files Modified
+### Files Modified (v3)
+
+| File | Change |
+|------|--------|
+| `apps/web/src/app/layout.tsx` | Updated metadata to platform-first narrative, removed APP_NAME import |
+| `apps/web/src/app/(marketing)/layout.tsx` | Reduced padding (FloatingCTA is always visible) |
+| `apps/web/src/app/(marketing)/page.tsx` | Complete v3 rewrite: new hero narrative, problem transition, horizontal showcases, 4 pillars, ecosystem map, counters, roadmap, new CTA |
+| `apps/web/src/app/(marketing)/ecosystems/page.tsx` | Complete v3 rewrite: Apple-style product comparison rows, bullet features, cleaner layout |
+| `packages/ui/src/FloatingCTA.tsx` | Always visible, branded with MicroNest logo, larger touch targets |
+
+### Files Modified (carried from v2)
 
 | File | Change |
 |------|--------|
 | `apps/web/tailwind.config.ts` | Added `border-light: '#ece7df'` |
-| `apps/web/src/app/layout.tsx` | Updated metadata, OpenGraph, body bg/tx colors |
-| `apps/web/src/app/(marketing)/layout.tsx` | Added FloatingCTA, padding for mobile CTA |
-| `apps/web/src/app/(marketing)/page.tsx` | Complete homepage rewrite (8 sections) |
-| `apps/web/src/app/(marketing)/ecosystems/page.tsx` | Complete ecosystems rewrite |
 | `packages/ui/src/MarketingNav.tsx` | Premium redesign: Products dropdown, full-screen mobile drawer, CTA |
 | `packages/ui/src/Footer.tsx` | Multi-column footer with product/company/legal links |
 | `packages/ui/src/index.ts` | Added FloatingCTA export |
 
-### Files Created
-
-| File | Purpose |
-|------|---------|
-| `packages/ui/src/FloatingCTA.tsx` | Mobile floating bottom CTA component |
-| `docs/releases/marketing-redesign-v2.md` | Release documentation |
-
 ### SEO Improvements
 
-- Updated root layout metadata with OpenGraph tags
-- Page-specific metadata (title, description, OpenGraph) on homepage and ecosystems page
-- Semantic HTML (proper section hierarchy, heading nesting)
-- Proper `title` template in root layout
+- **Root layout**: Platform-first metadata ("One platform. Multiple business operating systems.")
+- **Homepage**: Platform narrative in title, description, OpenGraph
+- **Ecosystems page**: "Choose your operating system" narrative
+- **Semantic HTML**: Proper section hierarchy, heading nesting (h1 → h2 → h3)
+- **Title template**: `%s | MicroNest` — reinforces brand

@@ -1,14 +1,17 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { CountUp } from '@micronest/ui'
 
 export const metadata: Metadata = {
-  title: 'Run your business without spreadsheets',
+  title: 'One platform. Multiple business operating systems.',
   description:
-    'Purpose-built software for PG owners, clinics, freelancers, and real estate professionals. One account. Multiple businesses.',
+    'MicroNest is a platform of purpose-built business operating systems. Launch, manage and scale niche businesses from a single account.',
   openGraph: {
-    title: 'MicroNest — Run your business without spreadsheets',
+    title: 'MicroNest — One platform. Multiple business operating systems.',
     description:
-      'Software built specifically for PGs, clinics, freelancers, and real estate businesses.',
+      'Launch, manage and scale niche businesses from a single account. Activate only the tools you need.',
+    type: 'website',
+    siteName: 'MicroNest',
   },
 }
 
@@ -26,36 +29,243 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   )
 }
 
+function HubMockup() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border-light bg-white shadow-sm">
+      {/* Top bar */}
+      <div className="flex items-center justify-between border-b border-border-light px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-charcoal text-[10px] font-bold text-white">M</div>
+          <span className="text-sm font-semibold text-charcoal">MicroNest</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-lavender/20 text-[10px] font-medium text-lavender">U</div>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row">
+        {/* Sidebar */}
+        <div className="w-full border-b border-border-light bg-cream/50 px-4 py-4 sm:w-44 sm:border-b-0 sm:border-r">
+          <nav className="flex flex-row gap-1 sm:flex-col">
+            {['Dashboard', 'Ecosystems', 'Settings'].map((item, i) => (
+              <span
+                key={item}
+                className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                  i === 0 ? 'bg-lavender/10 text-lavender' : 'text-gray-500 hover:text-charcoal'
+                }`}
+              >
+                {item}
+              </span>
+            ))}
+          </nav>
+        </div>
+
+        {/* Main */}
+        <div className="flex-1 px-4 py-4 sm:p-5">
+          <h3 className="text-base font-semibold text-charcoal">Your Ecosystems</h3>
+
+          {/* Active ecosystems */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="rounded-lg border border-border-light bg-green-50/50 p-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded bg-charcoal text-[8px] font-bold text-white">S</span>
+                <span className="text-xs font-semibold text-charcoal">StayNest</span>
+              </div>
+              <div className="mt-2 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                <span className="text-[10px] text-green-600">Active</span>
+              </div>
+            </div>
+            <div className="rounded-lg border border-border-light bg-amber-50/50 p-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded bg-charcoal text-[8px] font-bold text-white">C</span>
+                <span className="text-xs font-semibold text-charcoal">ClinicNest</span>
+              </div>
+              <div className="mt-2 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                <span className="text-[10px] text-amber-600">Early Access</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Available */}
+          <div className="mt-3 rounded-lg border border-dashed border-border-light bg-gray-50/50 p-3">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Available</p>
+            <div className="mt-1.5 flex items-center gap-3">
+              {['FreelanceNest', 'PropertyNest'].map((name) => (
+                <span key={name} className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <span className="flex h-3 w-3 items-center justify-center rounded bg-gray-300 text-[6px] font-bold text-white">
+                    {name.charAt(0)}
+                  </span>
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* At a Glance */}
+          <div className="mt-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500">At a Glance</p>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {[
+                { label: 'Residents', value: '28', sub: '+3 this month', color: 'text-charcoal' },
+                { label: "Today's Apps", value: '6', sub: '2 checked in', color: 'text-charcoal' },
+                { label: 'Revenue', value: '₹1.2L', sub: 'this month', color: 'text-green-600' },
+                { label: 'Active Tasks', value: '12', sub: '4 overdue', color: 'text-red-600' },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-lg bg-cream p-2 text-center">
+                  <p className="text-[10px] text-gray-500">{stat.label}</p>
+                  <p className={`text-sm font-semibold ${stat.color}`}>{stat.value}</p>
+                  <p className="text-[9px] text-gray-400">{stat.sub}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ProblemTransition() {
+  const tools = ['Excel', 'WhatsApp', 'Notebook', 'Sheets', 'Reminders']
+  return (
+    <div className="flex flex-col items-center gap-6 sm:gap-8">
+      {/* Fragmented tools row */}
+      <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+        {tools.map((tool, i) => (
+          <FadeIn key={tool} delay={i * 60}>
+            <div className="flex items-center gap-2 rounded-full border border-border-light bg-white px-4 py-2 text-sm text-gray-500 shadow-sm">
+              <span className="flex h-5 w-5 items-center justify-center rounded bg-gray-100 text-[10px] font-bold text-gray-400">
+                {tool.charAt(0)}
+              </span>
+              {tool}
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+
+      {/* Arrow */}
+      <FadeIn delay={350}>
+        <div className="flex h-10 w-10 items-center justify-center">
+          <svg className="h-6 w-6 text-lavender" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
+          </svg>
+        </div>
+      </FadeIn>
+
+      {/* MicroNest */}
+      <FadeIn delay={420}>
+        <div className="flex items-center gap-3 rounded-2xl border-2 border-lavender/30 bg-lavender/5 px-8 py-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-lavender text-sm font-bold text-white">M</div>
+          <div>
+            <span className="text-base font-semibold text-charcoal">MicroNest</span>
+            <p className="text-xs text-gray-500">One platform. All your tools.</p>
+          </div>
+        </div>
+      </FadeIn>
+    </div>
+  )
+}
+
+function EcosystemMap() {
+  const products = [
+    { name: 'StayNest', initial: 'S', status: 'Live', x: 'left', color: 'text-green-600', bg: 'bg-green-50' },
+    { name: 'ClinicNest', initial: 'C', status: 'Early Access', x: 'right', color: 'text-amber-600', bg: 'bg-amber-50' },
+    { name: 'FreelanceNest', initial: 'F', status: 'Coming Soon', x: 'left', color: 'text-gray-500', bg: 'bg-gray-50' },
+    { name: 'PropertyNest', initial: 'P', status: 'Coming Soon', x: 'right', color: 'text-gray-500', bg: 'bg-gray-50' },
+  ]
+
+  return (
+    <div className="relative mx-auto max-w-3xl">
+      {/* Center node — MicroNest */}
+      <div className="relative z-10 mx-auto flex w-fit items-center gap-3 rounded-2xl border-2 border-lavender/30 bg-white px-6 py-4 shadow-sm">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-lavender text-sm font-bold text-white">M</div>
+        <div>
+          <p className="text-base font-semibold text-charcoal">MicroNest</p>
+          <p className="text-xs text-gray-500">Ecosystem Platform</p>
+        </div>
+      </div>
+
+      {/* Products grid */}
+      <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-6">
+        {products.map((p, i) => (
+          <FadeIn key={p.name} delay={i * 80}>
+            <div className={`rounded-xl border border-border-light ${p.bg} p-4 transition-shadow hover:shadow-sm`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-charcoal text-[9px] font-bold text-white">
+                    {p.initial}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-charcoal">{p.name}</p>
+                    <p className={`text-[11px] font-medium ${p.color}`}>{p.status}</p>
+                  </div>
+                </div>
+                <svg className="h-4 w-4 text-lavender" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </div>
+            </div>
+          </FadeIn>
+        ))}
+      </div>
+
+      {/* Activation flow hint */}
+      <FadeIn delay={400}>
+        <p className="mt-6 text-center text-xs text-gray-400">
+          Activate ecosystems from your MicroNest dashboard. One click. No separate signups.
+        </p>
+      </FadeIn>
+    </div>
+  )
+}
+
+function PillarDiagram({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-lavender/10 text-lavender">
+        {children}
+      </div>
+      <h3 className="text-base font-semibold text-charcoal">{title}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-gray-500">{description}</p>
+    </div>
+  )
+}
+
 export default function HomePage() {
   return (
     <div className="bg-cream font-body text-charcoal">
-      {/* ════════ Section 1 — Hero ════════ */}
-      <section className="overflow-hidden border-b border-border-light px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+      {/* ════════ 1. Hero ════════ */}
+      <section className="overflow-hidden border-b border-border-light px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
             <FadeIn>
-              <div className="max-w-lg">
+              <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-border-light bg-white/60 px-3 py-1 text-xs font-medium text-gray-500">
                   <span className="flex h-4 w-4 items-center justify-center rounded bg-charcoal text-[8px] font-bold text-white">M</span>
-                  One platform for your business
+                  Ecosystem platform
                 </div>
-                <h1 className="mt-4 text-display-xl font-display leading-[1.05] tracking-tight text-charcoal">
-                  Run your business
+                <h1 className="mt-5 text-display-xl font-display leading-[1.05] tracking-tight text-charcoal">
+                  One platform.
                   <br />
-                  <span className="text-lavender">without spreadsheets.</span>
+                  <span className="text-lavender">Multiple business</span>
+                  <br />
+                  operating systems.
                 </h1>
-                <p className="mt-4 text-lg leading-relaxed text-gray-500">
-                  Software built specifically for PGs, clinics, freelancers, and real estate businesses.
+                <p className="mt-5 text-lg leading-relaxed text-gray-500">
+                  Launch, manage and scale niche businesses from a single account.
+                  Activate only the tools you need.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <Link href="/ecosystems/staynest">
-                    <button className="rounded-full bg-charcoal px-7 py-3 text-sm font-medium text-white transition-colors hover:bg-charcoal/90">
-                      Explore StayNest
+                  <Link href="/signup">
+                    <button className="rounded-full bg-charcoal px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-charcoal/90">
+                      Create Free Account
                     </button>
                   </Link>
                   <Link href="/ecosystems">
-                    <button className="rounded-full border border-border-light bg-white px-7 py-3 text-sm font-medium text-charcoal transition-colors hover:bg-gray-50">
-                      See Ecosystems
+                    <button className="rounded-full border border-border-light bg-white px-8 py-3 text-sm font-medium text-charcoal transition-colors hover:bg-gray-50">
+                      Explore Ecosystems
                     </button>
                   </Link>
                 </div>
@@ -63,432 +273,107 @@ export default function HomePage() {
             </FadeIn>
 
             <FadeIn delay={150}>
-              <div className="rounded-card-lg border border-border-light bg-white p-4 shadow-sm sm:p-6">
-                <div className="mb-4 flex items-center justify-between border-b border-border-light pb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded bg-charcoal text-[10px] font-bold text-white">S</div>
-                    <span className="text-sm font-semibold text-charcoal">StayNest</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-2 w-2 rounded-full bg-green-500" />
-                    <span className="text-xs text-gray-500">Live</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div className="rounded-lg bg-cream p-3">
-                    <p className="text-xs text-gray-500">Residents</p>
-                    <p className="text-xl font-semibold text-charcoal">30</p>
-                    <p className="text-xs text-green-600">28 active</p>
-                  </div>
-                  <div className="rounded-lg bg-cream p-3">
-                    <p className="text-xs text-gray-500">Rooms</p>
-                    <p className="text-xl font-semibold text-charcoal">15</p>
-                    <p className="text-xs text-gray-500">12 occupied</p>
-                  </div>
-                  <div className="rounded-lg bg-cream p-3">
-                    <p className="text-xs text-gray-500">Pending Rent</p>
-                    <p className="text-xl font-semibold text-charcoal">₹72K</p>
-                    <p className="text-xs text-red-500">₹24K overdue</p>
-                  </div>
-                  <div className="rounded-lg bg-cream p-3">
-                    <p className="text-xs text-gray-500">Open Maint.</p>
-                    <p className="text-xl font-semibold text-charcoal">4</p>
-                    <p className="text-xs text-gray-500">2 high priority</p>
-                  </div>
-                </div>
-                <div className="mt-4 flex h-12 items-end gap-1.5">
-                  <div className="w-full rounded-t bg-lavender/20" style={{ height: '40%' }} />
-                  <div className="w-full rounded-t bg-lavender/30" style={{ height: '60%' }} />
-                  <div className="w-full rounded-t bg-lavender/40" style={{ height: '75%' }} />
-                  <div className="w-full rounded-t bg-lavender/50" style={{ height: '55%' }} />
-                  <div className="w-full rounded-t bg-lavender/60" style={{ height: '85%' }} />
-                  <div className="w-full rounded-t bg-lavender/70" style={{ height: '65%' }} />
-                  <div className="w-full rounded-t bg-lavender/80" style={{ height: '90%' }} />
-                </div>
-              </div>
+              <HubMockup />
             </FadeIn>
           </div>
         </div>
       </section>
 
-      {/* ════════ Section 2 — Problem ════════ */}
-      <section className="px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mx-auto max-w-7xl">
+      {/* ════════ 2. Problem ════════ */}
+      <section className="px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+        <div className="mx-auto max-w-4xl">
           <FadeIn>
             <div className="mx-auto max-w-xl text-center">
-              <h2 className="text-display-md font-display text-charcoal">
-                Generic software was never built for your business.
+              <p className="text-xs font-medium uppercase tracking-widest text-gray-500">The Problem</p>
+              <h2 className="mt-4 text-display-md font-display text-charcoal">
+                Businesses are forced to stitch together tools.
               </h2>
-            </div>
-          </FadeIn>
-          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                title: 'PG Owners',
-                problem: 'Tracking rent in WhatsApp',
-                desc: 'Spreadsheets and chat threads. No real view of who paid, who owes, or what\'s overdue.',
-              },
-              {
-                title: 'Clinics',
-                problem: 'Missed appointments',
-                desc: 'Patients forget. No automated reminders. Empty slots cost you revenue every day.',
-              },
-              {
-                title: 'Freelancers',
-                problem: 'Scattered projects',
-                desc: 'Clients across platforms. invoices in different tools. No single source of truth.',
-              },
-              {
-                title: 'Real Estate',
-                problem: 'Lead management chaos',
-                desc: 'Inquiries lost in messages. No follow-up system. Deals slip through the cracks.',
-              },
-            ].map((item, i) => (
-              <FadeIn key={item.title} delay={i * 80}>
-                <div className="rounded-card border border-border-light bg-white p-5 transition-shadow hover:shadow-sm">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-lavender/10 text-sm font-bold text-lavender">
-                    {item.title.charAt(0)}
-                  </div>
-                  <h3 className="mt-3 text-sm font-semibold uppercase tracking-wider text-gray-500">
-                    {item.title}
-                  </h3>
-                  <p className="mt-1 text-base font-semibold text-charcoal">{item.problem}</p>
-                  <p className="mt-2 text-sm leading-relaxed text-gray-500">{item.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════ Section 3 — Ecosystem Showcase ════════ */}
-      <section className="bg-white px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <FadeIn>
-            <div className="mx-auto max-w-xl text-center">
-              <h2 className="text-display-md font-display text-charcoal">
-                Choose your ecosystem
-              </h2>
-              <p className="mt-3 text-lg text-gray-500">
-                Each one is purpose-built for your industry. Not a generic tool with your logo on it.
+              <p className="mt-3 text-base text-gray-500">
+                Spreadsheets, chat apps, notebooks, and manual reminders. None of them talk to each other.
+                You end up managing your tools instead of your business.
               </p>
             </div>
           </FadeIn>
 
-          <div className="mt-10 space-y-6">
-            {/* StayNest — Large Card */}
+          <div className="mt-14">
+            <ProblemTransition />
+          </div>
+        </div>
+      </section>
+
+      {/* ════════ 3. Ecosystem Showcase — Horizontal Rows ════════ */}
+      <section className="bg-white border-y border-border-light px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <FadeIn>
+            <div className="mx-auto max-w-xl text-center">
+              <p className="text-xs font-medium uppercase tracking-widest text-gray-500">Products</p>
+              <h2 className="mt-4 text-display-md font-display text-charcoal">
+                Operating systems for your business
+              </h2>
+              <p className="mt-3 text-base text-gray-500">
+                Each ecosystem is a complete operating system for its industry.
+                Not a dashboard. Not a template. Real software.
+              </p>
+            </div>
+          </FadeIn>
+
+          <div className="mt-14 space-y-16">
+            {/* StayNest */}
             <FadeIn>
-              <div className="rounded-card-lg border border-border-light bg-cream p-6 transition-shadow hover:shadow-md sm:p-8 lg:p-10">
-                <div className="grid items-center gap-8 lg:grid-cols-2">
-                  <div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-border-light bg-white px-3 py-1 text-xs font-medium text-green-600">
-                      <span className="flex h-2 w-2 rounded-full bg-green-500" />
-                      Live — Production Ready
-                    </div>
-                    <h3 className="mt-4 text-display-md font-display text-charcoal">StayNest</h3>
-                    <p className="mt-2 text-base text-gray-500">For PG & Hostel Owners</p>
-                    <p className="mt-3 text-sm leading-relaxed text-gray-500">
-                      Manage residents, rooms, rent, maintenance, visitors, and announcements — all from one dashboard.
-                      WhatsApp notifications keep everyone in the loop.
-                    </p>
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {['Residents', 'Rooms', 'Rent', 'Maintenance', 'Visitors', 'WhatsApp'].map((f) => (
-                        <span key={f} className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-charcoal ring-1 ring-border-light">
-                          {f}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-6">
-                      <Link href="/ecosystems/staynest">
-                        <button className="rounded-full bg-charcoal px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-charcoal/90">
-                          Explore StayNest &rarr;
-                        </button>
-                      </Link>
-                    </div>
+              <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                    <span className="flex h-2 w-2 rounded-full bg-green-500" />
+                    Available Now — Production Ready
                   </div>
-                  <div className="rounded-card-lg border border-border-light bg-white p-4 shadow-sm sm:p-6">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg bg-cream p-3">
-                        <p className="text-xs text-gray-500">Monthly Collection</p>
-                        <p className="text-lg font-semibold text-charcoal">₹1,42,000</p>
-                      </div>
-                      <div className="rounded-lg bg-cream p-3">
-                        <p className="text-xs text-gray-500">Occupancy</p>
-                        <p className="text-lg font-semibold text-charcoal">87%</p>
-                      </div>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {[
-                        { name: 'Amit Sharma', room: '101', status: 'Paid' },
-                        { name: 'Priya Patel', room: '102', status: 'Pending' },
-                        { name: 'Rahul Verma', room: '103', status: 'Overdue' },
-                      ].map((r) => (
-                        <div key={r.name} className="flex items-center justify-between rounded-lg bg-cream px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-lavender/20 text-[10px] font-medium text-lavender">
-                              {r.name.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-charcoal">{r.name}</p>
-                              <p className="text-xs text-gray-500">Room {r.room}</p>
-                            </div>
-                          </div>
-                          <span className={`text-xs font-medium ${r.status === 'Paid' ? 'text-green-600' : r.status === 'Pending' ? 'text-amber-600' : 'text-red-600'}`}>
-                            {r.status}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                  <h3 className="mt-5 text-display-md font-display text-charcoal">StayNest</h3>
+                  <p className="mt-2 text-base text-gray-500">Operating system for PG & Hostel Owners</p>
+                  <p className="mt-4 text-sm leading-relaxed text-gray-500">
+                    Manage residents, rooms, rent, maintenance, visitors, and announcements.
+                    WhatsApp notifications, analytics, and receipt generation included.
+                    Everything a PG owner needs to run their property.
+                  </p>
+                  <div className="mt-6 flex items-center gap-6">
+                    <Link href="/ecosystems/staynest">
+                      <button className="rounded-full bg-charcoal px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-charcoal/90">
+                        Explore StayNest &rarr;
+                      </button>
+                    </Link>
+                    <Link href="/signup">
+                      <span className="text-sm font-medium text-lavender transition-colors hover:text-lavender-hover">
+                        Start Free &rarr;
+                      </span>
+                    </Link>
                   </div>
                 </div>
-              </div>
-            </FadeIn>
-
-            {/* ClinicNest — Large Card */}
-            <FadeIn delay={100}>
-              <div className="rounded-card-lg border border-border-light bg-cream p-6 transition-shadow hover:shadow-md sm:p-8 lg:p-10">
-                <div className="grid items-center gap-8 lg:grid-cols-2">
-                  <div className="order-last lg:order-first">
-                    <div className="rounded-card-lg border border-border-light bg-white p-4 shadow-sm sm:p-6">
-                      <div className="space-y-3">
-                        {[
-                          { patient: 'Ananya Gupta', time: '10:00 AM', type: 'Checkup', status: 'Confirmed' },
-                          { patient: 'Vikram Singh', time: '11:30 AM', type: 'Follow-up', status: 'Checked In' },
-                          { patient: 'Neha Joshi', time: '2:00 PM', type: 'Consultation', status: 'Pending' },
-                        ].map((a) => (
-                          <div key={a.patient} className="flex items-center justify-between rounded-lg bg-cream px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-lavender/20 text-[10px] font-medium text-lavender">
-                                {a.patient.charAt(0)}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-charcoal">{a.patient}</p>
-                                <p className="text-xs text-gray-500">{a.time} — {a.type}</p>
-                              </div>
-                            </div>
-                            <span className={`text-xs font-medium ${a.status === 'Confirmed' ? 'text-green-600' : a.status === 'Checked In' ? 'text-lavender' : 'text-amber-600'}`}>
-                              {a.status}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                <div className="rounded-2xl border border-border-light bg-cream p-4 shadow-sm sm:p-6">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="rounded-xl bg-white p-3">
+                      <p className="text-xs text-gray-500">Residents</p>
+                      <p className="text-xl font-semibold text-charcoal">30</p>
+                    </div>
+                    <div className="rounded-xl bg-white p-3">
+                      <p className="text-xs text-gray-500">Rooms</p>
+                      <p className="text-xl font-semibold text-charcoal">15</p>
+                    </div>
+                    <div className="rounded-xl bg-white p-3">
+                      <p className="text-xs text-gray-500">Revenue</p>
+                      <p className="text-xl font-semibold text-charcoal">₹1.4L</p>
+                    </div>
+                    <div className="rounded-xl bg-white p-3">
+                      <p className="text-xs text-gray-500">Open Maint.</p>
+                      <p className="text-xl font-semibold text-charcoal">4</p>
                     </div>
                   </div>
-                  <div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-border-light bg-white px-3 py-1 text-xs font-medium text-amber-600">
-                      <span className="flex h-2 w-2 rounded-full bg-amber-500" />
-                      Early Access
-                    </div>
-                    <h3 className="mt-4 text-display-md font-display text-charcoal">ClinicNest</h3>
-                    <p className="mt-2 text-base text-gray-500">For Clinics & Practices</p>
-                    <p className="mt-3 text-sm leading-relaxed text-gray-500">
-                      Appointment scheduling, patient records, prescription management, and automated reminders.
-                      Built for clinics that want to go digital without the complexity.
-                    </p>
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {['Appointments', 'Patients', 'Prescriptions', 'Reminders'].map((f) => (
-                        <span key={f} className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-charcoal ring-1 ring-border-light">
-                          {f}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-6">
-                      <Link href="/ecosystems/clinicnest">
-                        <button className="rounded-full bg-charcoal px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-charcoal/90">
-                          Join Waitlist &rarr;
-                        </button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* Coming Soon — Smaller Cards */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                {
-                  name: 'FreelanceNest',
-                  tagline: 'For Freelancers',
-                  desc: 'Project tracking, invoicing, and client management for independent professionals.',
-                  icon: 'F',
-                },
-                {
-                  name: 'PropertyNest',
-                  tagline: 'For Real Estate',
-                  desc: 'Property listings, inquiries, tours, and deal management for real estate professionals.',
-                  icon: 'P',
-                },
-              ].map((item, i) => (
-                <FadeIn key={item.name} delay={i * 80}>
-                  <div className="rounded-card-lg border border-border-light bg-white p-6 opacity-70 sm:p-8">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-200 text-sm font-bold text-gray-500">
-                        {item.icon}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-charcoal">{item.name}</h3>
-                        <p className="text-sm text-gray-500">{item.tagline}</p>
-                      </div>
-                      <div className="ml-auto">
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500">
-                          Coming Soon
-                        </span>
-                      </div>
-                    </div>
-                    <p className="mt-4 text-sm leading-relaxed text-gray-500">{item.desc}</p>
-                  </div>
-                </FadeIn>
-              ))}
-            </div>
-
-            <FadeIn delay={150}>
-              <div className="text-center">
-                <Link href="/ecosystems">
-                  <button className="rounded-full border border-border-light bg-white px-6 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-gray-50">
-                    View Ecosystem Roadmap &rarr;
-                  </button>
-                </Link>
-              </div>
-            </FadeIn>
-          </div>
-        </div>
-      </section>
-
-      {/* ════════ Section 4 — Why Customers Choose MicroNest ════════ */}
-      <section className="border-y border-border-light px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <FadeIn>
-            <div className="mx-auto max-w-xl text-center">
-              <h2 className="text-display-md font-display text-charcoal">
-                Why customers choose MicroNest
-              </h2>
-            </div>
-          </FadeIn>
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
-            {[
-              {
-                title: 'Purpose Built',
-                desc: 'Every ecosystem is built from the ground up for one industry. Not a generic CRM with your logo on it.',
-                icon: (
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                ),
-              },
-              {
-                title: 'Unified Login',
-                desc: 'One account. Access every ecosystem your business needs. No separate logins, no data silos.',
-                icon: (
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
-                  </svg>
-                ),
-              },
-              {
-                title: 'Grow Together',
-                desc: 'New ecosystems unlock over time. Start with one, add more as your business grows. No migration needed.',
-                icon: (
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-                  </svg>
-                ),
-              },
-            ].map((item, i) => (
-              <FadeIn key={item.title} delay={i * 80}>
-                <div className="rounded-card border border-border-light bg-white p-6">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-lavender/10 text-lavender">
-                    {item.icon}
-                  </div>
-                  <h3 className="mt-4 text-lg font-semibold text-charcoal">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-gray-500">{item.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════ Section 5 — Real Screens ════════ */}
-      <section className="px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <FadeIn>
-            <div className="mx-auto max-w-xl text-center">
-              <h2 className="text-display-md font-display text-charcoal">
-                See the actual software
-              </h2>
-              <p className="mt-3 text-lg text-gray-500">
-                No illustrations. No mock concepts. This is what you get.
-              </p>
-            </div>
-          </FadeIn>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
-            {[
-              {
-                title: 'StayNest Analytics',
-                desc: 'Revenue, occupancy, and maintenance metrics calculated from your data in real time.',
-                content: (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="rounded-lg bg-cream p-2 text-center">
-                        <p className="text-[10px] text-gray-500">Revenue</p>
-                        <p className="text-sm font-semibold text-charcoal">₹1.4L</p>
-                      </div>
-                      <div className="rounded-lg bg-cream p-2 text-center">
-                        <p className="text-[10px] text-gray-500">Occupancy</p>
-                        <p className="text-sm font-semibold text-charcoal">87%</p>
-                      </div>
-                      <div className="rounded-lg bg-cream p-2 text-center">
-                        <p className="text-[10px] text-gray-500">Overdue</p>
-                        <p className="text-sm font-semibold text-red-600">₹24K</p>
-                      </div>
-                    </div>
-                    <div className="flex h-12 items-end gap-1">
-                      <div className="w-full rounded-t bg-lavender/20" style={{ height: '35%' }} />
-                      <div className="w-full rounded-t bg-lavender/30" style={{ height: '55%' }} />
-                      <div className="w-full rounded-t bg-lavender/40" style={{ height: '70%' }} />
-                      <div className="w-full rounded-t bg-lavender/50" style={{ height: '50%' }} />
-                      <div className="w-full rounded-t bg-lavender/60" style={{ height: '80%' }} />
-                      <div className="w-full rounded-t bg-lavender/70" style={{ height: '60%' }} />
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                title: 'Rent Collection',
-                desc: 'See who paid, who hasn\'t, and who\'s overdue. One click to mark payments.',
-                content: (
-                  <div className="space-y-1.5">
+                  <div className="mt-4 space-y-2">
                     {[
-                      { name: 'Room 101', amount: '₹8,000', status: 'Paid', color: 'text-green-600' },
-                      { name: 'Room 102', amount: '₹8,000', status: 'Pending', color: 'text-amber-600' },
-                      { name: 'Room 103', amount: '₹8,500', status: 'Overdue', color: 'text-red-600' },
-                      { name: 'Room 201', amount: '₹9,000', status: 'Paid', color: 'text-green-600' },
+                      { name: 'Amit Sharma', room: '101', status: 'Paid', color: 'text-green-600' },
+                      { name: 'Priya Patel', room: '102', status: 'Pending', color: 'text-amber-600' },
+                      { name: 'Rahul Verma', room: '103', status: 'Overdue', color: 'text-red-600' },
                     ].map((r) => (
-                      <div key={r.name} className="flex items-center justify-between rounded-lg bg-cream px-3 py-2">
-                        <span className="text-sm font-medium text-charcoal">{r.name}</span>
-                        <div className="text-right">
-                          <p className="text-sm text-charcoal">{r.amount}</p>
-                          <p className={`text-xs ${r.color}`}>{r.status}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ),
-              },
-              {
-                title: 'Resident Directory',
-                desc: 'Complete profiles with emergency contacts, room assignments, and move-in history.',
-                content: (
-                  <div className="space-y-1.5">
-                    {[
-                      { name: 'Ananya', room: '301', phone: '+91 98765 43210' },
-                      { name: 'Vikram', room: '302', phone: '+91 87654 32109' },
-                      { name: 'Neha', room: '303', phone: '+91 76543 21098' },
-                    ].map((r) => (
-                      <div key={r.name} className="flex items-center justify-between rounded-lg bg-cream px-3 py-2">
+                      <div key={r.name} className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-lavender/20 text-xs font-medium text-lavender">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-lavender/20 text-[10px] font-medium text-lavender">
                             {r.name.charAt(0)}
                           </div>
                           <div>
@@ -496,219 +381,272 @@ export default function HomePage() {
                             <p className="text-xs text-gray-500">Room {r.room}</p>
                           </div>
                         </div>
-                        <span className="text-xs text-gray-500">{r.phone}</span>
+                        <span className={`text-xs font-medium ${r.color}`}>{r.status}</span>
                       </div>
                     ))}
                   </div>
-                ),
-              },
-              {
-                title: 'Maintenance Board',
-                desc: 'Track requests from open to resolved. Residents report issues. You manage them.',
-                content: (
-                  <div className="space-y-1.5">
-                    {[
-                      { issue: 'AC not working', room: '101', status: 'In Progress' },
-                      { issue: 'Water leak', room: '203', status: 'Open' },
-                      { issue: 'Broken window', room: '105', status: 'Resolved' },
-                    ].map((m) => (
-                      <div key={m.issue} className="flex items-center justify-between rounded-lg bg-cream px-3 py-2">
-                        <div>
-                          <p className="text-sm font-medium text-charcoal">{m.issue}</p>
-                          <p className="text-xs text-gray-500">Room {m.room}</p>
+                </div>
+              </div>
+            </FadeIn>
+
+            {/* ClinicNest */}
+            <FadeIn delay={100}>
+              <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+                <div className="order-last lg:order-first">
+                  <div className="rounded-2xl border border-border-light bg-cream p-4 shadow-sm sm:p-6">
+                    <div className="space-y-2">
+                      {[
+                        { patient: 'Ananya Gupta', time: '10:00 AM', type: 'Checkup', status: 'Confirmed' },
+                        { patient: 'Vikram Singh', time: '11:30 AM', type: 'Follow-up', status: 'Checked In' },
+                        { patient: 'Neha Joshi', time: '2:00 PM', type: 'Consultation', status: 'Pending' },
+                      ].map((a) => (
+                        <div key={a.patient} className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-lavender/20 text-[10px] font-medium text-lavender">
+                              {a.patient.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-charcoal">{a.patient}</p>
+                              <p className="text-xs text-gray-500">{a.time} — {a.type}</p>
+                            </div>
+                          </div>
+                          <span className={`text-xs font-medium ${a.status === 'Confirmed' ? 'text-green-600' : a.status === 'Checked In' ? 'text-lavender' : 'text-amber-600'}`}>
+                            {a.status}
+                          </span>
                         </div>
-                        <span className={`text-xs font-medium ${
-                          m.status === 'Resolved' ? 'text-green-600' :
-                          m.status === 'In Progress' ? 'text-lavender' : 'text-amber-600'
-                        }`}>
-                          {m.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ),
-              },
-            ].map((item, i) => (
-              <FadeIn key={item.title} delay={i * 80}>
-                <div className="rounded-card-lg border border-border-light bg-white p-5 transition-shadow hover:shadow-md sm:p-6">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-semibold text-charcoal">{item.title}</h3>
-                      <p className="text-xs text-gray-500">{item.desc}</p>
-                    </div>
-                  </div>
-                  {item.content}
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════ Section 6 — Social Proof ════════ */}
-      <section className="bg-white border-t border-border-light px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <FadeIn>
-            <div className="mx-auto max-w-xl text-center">
-              <h2 className="text-display-md font-display text-charcoal">
-                Trusted by business owners like you
-              </h2>
-            </div>
-          </FadeIn>
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
-            {[
-              {
-                quote: 'Stop managing your PG with WhatsApp and sticky notes. MicroNest gives you a real dashboard, and the WhatsApp integration means my tenants actually pay on time now.',
-                name: 'PG Owner',
-                role: 'Manages 15 rooms',
-              },
-              {
-                quote: 'We were using three different tools for appointments, billing, and patient records. Now it\'s all in one place. The early access is solid.',
-                name: 'Clinic Owner',
-                role: 'Single practice',
-              },
-              {
-                quote: 'As a freelancer, I\'ve been waiting for something like this. One place for projects, invoices, and client management without the bloat.',
-                name: 'Freelancer',
-                role: 'Product designer',
-              },
-            ].map((item, i) => (
-              <FadeIn key={item.name} delay={i * 80}>
-                <div className="rounded-card border border-border-light bg-cream p-6">
-                  <svg className="h-5 w-5 text-lavender/40" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                  </svg>
-                  <p className="mt-3 text-sm leading-relaxed text-gray-600">&ldquo;{item.quote}&rdquo;</p>
-                  <div className="mt-5 flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-lavender/20 text-xs font-medium text-lavender">
-                      {item.name.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-charcoal">{item.name}</p>
-                      <p className="text-xs text-gray-500">{item.role}</p>
+                      ))}
                     </div>
                   </div>
                 </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════ Section 7 — Pricing Preview ════════ */}
-      <section className="px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <FadeIn>
-            <div className="mx-auto max-w-xl text-center">
-              <p className="text-xs font-medium uppercase tracking-widest text-gray-500">Pricing</p>
-              <h2 className="mt-3 text-display-md font-display text-charcoal">
-                Start free. Grow with us.
-              </h2>
-              <p className="mt-3 text-lg text-gray-500">
-                No hidden fees. No long-term contracts. Cancel anytime.
-              </p>
-            </div>
-          </FadeIn>
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {[
-              {
-                name: 'Starter',
-                price: 'Free',
-                period: 'forever',
-                desc: 'For small PGs just getting started.',
-                features: ['Up to 10 residents', 'Up to 5 rooms', 'Rent tracking', 'Visitor log', 'Basic notifications'],
-                cta: 'Start Free',
-                href: '/signup',
-                featured: false,
-              },
-              {
-                name: 'Growth',
-                price: '₹999',
-                period: '/month',
-                desc: 'For growing hostels and co-living spaces.',
-                features: ['Unlimited residents', 'Unlimited rooms', 'Full rent + receipts', 'Maintenance & announcements', 'WhatsApp notifications', 'Analytics dashboard'],
-                cta: 'Start Free Trial',
-                href: '/signup',
-                featured: true,
-              },
-              {
-                name: 'Pro',
-                price: 'Custom',
-                period: '',
-                desc: 'For multi-property operators.',
-                features: ['Everything in Growth', 'Multi-property support', 'Custom integrations', 'Priority support', 'Dedicated account manager'],
-                cta: 'Contact Sales',
-                href: 'mailto:sales@micronest.app',
-                featured: false,
-              },
-            ].map((tier, i) => (
-              <FadeIn key={tier.name} delay={i * 80}>
-                <div className={`rounded-card border p-6 ${
-                  tier.featured
-                    ? 'border-lavender/30 bg-white shadow-md ring-1 ring-lavender/20'
-                    : 'border-border-light bg-white'
-                }`}>
-                  {tier.featured && (
-                    <span className="inline-block rounded-full bg-lavender/10 px-3 py-0.5 text-xs font-medium text-lavender">
-                      Most Popular
-                    </span>
-                  )}
-                  <h3 className="mt-3 text-base font-semibold text-charcoal">{tier.name}</h3>
-                  <div className="mt-2">
-                    <span className="text-display-md font-display text-charcoal">{tier.price}</span>
-                    {tier.period && <span className="ml-1 text-sm text-gray-500">{tier.period}</span>}
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                    <span className="flex h-2 w-2 rounded-full bg-amber-500" />
+                    Early Access
                   </div>
-                  <p className="mt-1 text-sm text-gray-500">{tier.desc}</p>
-                  <ul className="mt-6 space-y-2.5">
-                    {tier.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
-                        <svg className="h-4 w-4 shrink-0 text-lavender" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-8">
-                    <Link href={tier.href}>
-                      <button className={`w-full rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
-                        tier.featured
-                          ? 'bg-charcoal text-white hover:bg-charcoal/90'
-                          : 'border border-border-light bg-white text-charcoal hover:bg-gray-50'
-                      }`}>
-                        {tier.cta}
+                  <h3 className="mt-5 text-display-md font-display text-charcoal">ClinicNest</h3>
+                  <p className="mt-2 text-base text-gray-500">Operating system for Clinics & Practices</p>
+                  <p className="mt-4 text-sm leading-relaxed text-gray-500">
+                    Appointment scheduling, patient records, prescription management, and automated reminders.
+                    Built for clinics that want to eliminate paperwork and reduce no-shows.
+                    No complexity. No training required.
+                  </p>
+                  <div className="mt-6 flex items-center gap-6">
+                    <Link href="/ecosystems/clinicnest">
+                      <button className="rounded-full bg-charcoal px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-charcoal/90">
+                        Join Waitlist &rarr;
                       </button>
+                    </Link>
+                    <Link href="/ecosystems/clinicnest">
+                      <span className="text-sm font-medium text-lavender transition-colors hover:text-lavender-hover">
+                        Learn More &rarr;
+                      </span>
                     </Link>
                   </div>
                 </div>
-              </FadeIn>
-            ))}
+              </div>
+            </FadeIn>
+
+            {/* FreelanceNest & PropertyNest — Coming Soon */}
+            <FadeIn delay={150}>
+              <div className="grid gap-6 sm:grid-cols-2">
+                {[
+                  { name: 'FreelanceNest', tagline: 'For Freelancers', desc: 'Project tracking, invoicing, client management, and portfolio tools for independent professionals.', initial: 'F' },
+                  { name: 'PropertyNest', tagline: 'For Real Estate', desc: 'Property listings, inquiry management, tour scheduling, and deal tracking for real estate professionals.', initial: 'P' },
+                ].map((p) => (
+                  <div key={p.name} className="rounded-2xl border border-dashed border-border-light bg-gray-50/50 p-6 sm:p-8">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-200 text-sm font-bold text-gray-400">{p.initial}</div>
+                      <div>
+                        <h4 className="text-base font-semibold text-charcoal">{p.name}</h4>
+                        <p className="text-sm text-gray-500">{p.tagline}</p>
+                      </div>
+                      <span className="ml-auto rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500">Coming Soon</span>
+                    </div>
+                    <p className="mt-4 text-sm leading-relaxed text-gray-500">{p.desc}</p>
+                    <Link href={`/ecosystems/${p.name.toLowerCase().replace('nest', '')}nest`}>
+                      <span className="mt-4 inline-block text-sm font-medium text-lavender transition-colors hover:text-lavender-hover">
+                        Get notified &rarr;
+                      </span>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </FadeIn>
           </div>
-          <FadeIn delay={250}>
-            <div className="mt-8 text-center">
-              <Link href="/pricing">
-                <button className="rounded-full border border-border-light bg-white px-6 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-gray-50">
-                  Compare all plans &rarr;
-                </button>
-              </Link>
-            </div>
-          </FadeIn>
         </div>
       </section>
 
-      {/* ════════ Section 8 — Final CTA ════════ */}
-      <section className="bg-charcoal px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+      {/* ════════ 4. Why MicroNest — 4 Pillars ════════ */}
+      <section className="px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <FadeIn>
+            <div className="mx-auto max-w-xl text-center">
+              <p className="text-xs font-medium uppercase tracking-widest text-gray-500">Why MicroNest</p>
+              <h2 className="mt-4 text-display-md font-display text-charcoal">
+                Infrastructure designed for multi-business operations
+              </h2>
+            </div>
+          </FadeIn>
+
+          <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <FadeIn delay={0}>
+              <PillarDiagram
+                title="One Login"
+                description="One account gives you access to every ecosystem. No separate registrations, no password fatigue."
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+              </PillarDiagram>
+            </FadeIn>
+
+            <FadeIn delay={80}>
+              <PillarDiagram
+                title="Shared Billing"
+                description="One subscription covers all your active ecosystems. Pay once. Use everything you need."
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                </svg>
+              </PillarDiagram>
+            </FadeIn>
+
+            <FadeIn delay={160}>
+              <PillarDiagram
+                title="Shared Analytics"
+                description="View performance across all ecosystems from one dashboard. Compare, analyze, optimize."
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+              </PillarDiagram>
+            </FadeIn>
+
+            <FadeIn delay={240}>
+              <PillarDiagram
+                title="Shared Infrastructure"
+                description="Ecosystems share auth, notifications, and data layer. New products feel instantly familiar."
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+              </PillarDiagram>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════ 5. Product Ecosystem Map ════════ */}
+      <section className="bg-white border-y border-border-light px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <FadeIn>
+            <div className="mx-auto max-w-xl text-center">
+              <p className="text-xs font-medium uppercase tracking-widest text-gray-500">Ecosystem Map</p>
+              <h2 className="mt-4 text-display-md font-display text-charcoal">
+                One platform. Four operating systems.
+              </h2>
+              <p className="mt-3 text-base text-gray-500">
+                Activate what you need. Add more as you grow. Everything works together.
+              </p>
+            </div>
+          </FadeIn>
+
+          <div className="mt-14">
+            <EcosystemMap />
+          </div>
+        </div>
+      </section>
+
+      {/* ════════ 6. Social Proof — Metrics ════════ */}
+      <section className="px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <FadeIn>
+            <div className="mx-auto max-w-xl text-center">
+              <p className="text-xs font-medium uppercase tracking-widest text-gray-500">Platform Metrics</p>
+              <h2 className="mt-4 text-display-md font-display text-charcoal">
+                Growing with businesses like yours
+              </h2>
+            </div>
+          </FadeIn>
+
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: 'Residents Managed', end: 1000, suffix: '+' },
+              { label: 'Rent Payments Tracked', end: 500, suffix: '+' },
+              { label: 'Maintenance Requests Closed', end: 100, suffix: '+' },
+              { label: 'Active Properties', end: 50, suffix: '+' },
+            ].map((stat, i) => (
+              <FadeIn key={stat.label} delay={i * 80}>
+                <div className="rounded-2xl border border-border-light bg-white px-6 py-8 text-center transition-shadow hover:shadow-sm">
+                  <p className="text-4xl font-semibold tracking-tight text-charcoal">
+                    <CountUp end={stat.end} suffix={stat.suffix} />
+                  </p>
+                  <p className="mt-2 text-sm text-gray-500">{stat.label}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════ 7. Roadmap ════════ */}
+      <section className="bg-white border-y border-border-light px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <FadeIn>
+            <div className="mx-auto max-w-xl text-center">
+              <p className="text-xs font-medium uppercase tracking-widest text-gray-500">Roadmap</p>
+              <h2 className="mt-4 text-display-md font-display text-charcoal">
+                What&rsquo;s available and what&rsquo;s next
+              </h2>
+            </div>
+          </FadeIn>
+
+          <div className="relative mx-auto mt-14 max-w-3xl">
+            <div className="absolute left-6 top-0 h-full w-px bg-border-light" />
+
+            <div className="space-y-8">
+              {[
+                { name: 'StayNest', status: 'Available Now', color: 'bg-green-500', textColor: 'text-green-700', badgeBg: 'bg-green-50', desc: 'Production ready. Full feature set including rent tracking, maintenance, visitors, WhatsApp notifications, and analytics.' },
+                { name: 'ClinicNest', status: 'Early Access', color: 'bg-amber-500', textColor: 'text-amber-700', badgeBg: 'bg-amber-50', desc: 'Early access phase. Appointments, patient records, and prescriptions available. More modules in development.' },
+                { name: 'FreelanceNest', status: 'In Development', color: 'bg-lavender', textColor: 'text-lavender', badgeBg: 'bg-lavender/10', desc: 'Project tracking, invoicing, and client management tools under active development.' },
+                { name: 'PropertyNest', status: 'In Development', color: 'bg-lavender', textColor: 'text-lavender', badgeBg: 'bg-lavender/10', desc: 'Property listings, inquiry management, and deal tracking being built for real estate professionals.' },
+              ].map((item, i) => (
+                <FadeIn key={item.name} delay={i * 80}>
+                  <div className="relative flex items-start gap-6 pl-14">
+                    <div className={`absolute left-4 top-2 z-10 flex h-4 w-4 rounded-full ${item.color} ring-4 ring-white`} />
+                    <div className="flex-1 rounded-xl border border-border-light bg-white p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="text-base font-semibold text-charcoal">{item.name}</h3>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${item.badgeBg} ${item.textColor}`}>
+                          {item.status}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-gray-500">{item.desc}</p>
+                    </div>
+                  </div>
+                </FadeIn>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════ 8. Final CTA ════════ */}
+      <section className="bg-charcoal px-4 py-24 sm:px-6 sm:py-32 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <FadeIn>
-            <h2 className="text-display-md font-display text-white">
-              Start with StayNest today.
+            <p className="text-xs font-medium uppercase tracking-widest text-gray-500">Get Started</p>
+            <h2 className="mt-5 text-display-md font-display text-white">
+              Start with one ecosystem.
+              <br />
+              Expand when you&rsquo;re ready.
             </h2>
-            <p className="mt-4 text-lg text-gray-400">
-              Free plan included. No credit card required. Set up in under a minute.
+            <p className="mt-4 text-lg leading-relaxed text-gray-400">
+              Free plan included. No credit card required. Set up your first ecosystem in under a minute.
             </p>
-            <div className="mt-8">
+            <div className="mt-10">
               <Link href="/signup">
-                <button className="rounded-full bg-white px-8 py-3 text-sm font-medium text-charcoal transition-colors hover:bg-white/90">
+                <button className="rounded-full bg-white px-10 py-3.5 text-base font-medium text-charcoal transition-colors hover:bg-white/90">
                   Create Free Account
                 </button>
               </Link>

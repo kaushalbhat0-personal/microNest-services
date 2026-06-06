@@ -1,23 +1,22 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { APP_NAME } from '@micronest/config'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: {
-    default: `${APP_NAME} — Run your business without spreadsheets`,
-    template: `%s | ${APP_NAME}`,
+    default: 'MicroNest — One platform. Multiple business operating systems.',
+    template: `%s | MicroNest`,
   },
   description:
-    'MicroNest is a platform of purpose-built business ecosystems for PG owners, clinics, freelancers, and real estate professionals. One account. Multiple businesses.',
+    'MicroNest is a platform of purpose-built business operating systems. Launch, manage and scale niche businesses from a single account. Activate only the tools you need.',
   openGraph: {
-    title: `${APP_NAME} — Run your business without spreadsheets`,
+    title: 'MicroNest — One platform. Multiple business operating systems.',
     description:
-      'Purpose-built software for PGs, clinics, freelancers, and real estate. One account. Multiple businesses.',
+      'Launch, manage and scale niche businesses from a single account. Activate only the tools you need.',
     type: 'website',
-    siteName: APP_NAME,
+    siteName: 'MicroNest',
   },
 }
 

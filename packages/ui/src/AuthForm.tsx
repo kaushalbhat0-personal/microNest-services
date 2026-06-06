@@ -32,7 +32,7 @@ export function AuthForm({ mode, action }: AuthFormProps) {
           type="email"
           autoComplete="email"
           required
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-3 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-lavender focus:outline-none focus:ring-1 focus:ring-lavender min-h-[48px]"
         />
       </div>
 
@@ -52,7 +52,7 @@ export function AuthForm({ mode, action }: AuthFormProps) {
           }
           required
           minLength={6}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-3 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-lavender focus:outline-none focus:ring-1 focus:ring-lavender min-h-[48px]"
         />
       </div>
 
@@ -60,7 +60,7 @@ export function AuthForm({ mode, action }: AuthFormProps) {
         <p className="text-sm text-red-600">{state.error}</p>
       )}
 
-      <Button type="submit" loading={isPending} className="w-full">
+      <Button type="submit" loading={isPending} className="w-full min-h-[48px]">
         {mode === 'login' ? 'Sign in' : 'Create account'}
       </Button>
     </form>

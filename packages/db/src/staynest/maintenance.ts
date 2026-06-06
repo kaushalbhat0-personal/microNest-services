@@ -41,6 +41,7 @@ export async function createMaintenanceRequest(
     description: string
     category: string
     priority?: string
+    assigned_to?: string | null
     resident_id?: string | null
     room_id?: string | null
   },
@@ -54,6 +55,7 @@ export async function createMaintenanceRequest(
       description: input.description,
       category: input.category,
       priority: input.priority ?? 'medium',
+      assigned_to: input.assigned_to ?? null,
       resident_id: input.resident_id ?? null,
       room_id: input.room_id ?? null,
       created_by: userId,
@@ -68,14 +70,18 @@ export async function updateMaintenanceRequestStatus(
   organizationId: string,
   id: string,
   status: StayNestMaintenanceRequest['status'],
-  userId: string
+  userId: string,
+  extra?: { assigned_to?: string | null; resolved_notes?: string | null }
 ): Promise<StayNestMaintenanceRequest | null> {
-  const updates: Record<string, string | null> = { status }
+  const updates: Record<string, string | null | undefined> = { status }
 
-  if (status === 'resolved' || status === 'closed') {
+  if (status === 'resolved') {
     updates.resolved_at = new Date().toISOString()
     updates.resolved_by = userId
   }
+
+  if (extra?.assigned_to !== undefined) updates.assigned_to = extra.assigned_to
+  if (extra?.resolved_notes !== undefined) updates.resolved_notes = extra.resolved_notes
 
   const { data } = await supabase
     .from('staynest_maintenance_requests')
@@ -87,35 +93,32 @@ export async function updateMaintenanceRequestStatus(
   return data
 }
 
-export async function assignMaintenanceRequest(
-  supabase: DBClient,
-  organizationId: string,
-  id: string,
-  assignedTo: string
-): Promise<StayNestMaintenanceRequest | null> {
-  const { data } = await supabase
-    .from('staynest_maintenance_requests')
-    .update({ assigned_to: assignedTo, status: 'assigned' })
-    .eq('id', id)
-    .eq('organization_id', organizationId)
-    .select('*')
-    .single()
-  return data
-}
-
 export async function countMaintenanceRequestsByStatus(
   supabase: DBClient,
   organizationId: string
-): Promise<Record<string, number>> {
+): Promise<{ open: number; inProgress: number; resolved: number; resolvedThisMonth: number }> {
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
   const { data } = await supabase
     .from('staynest_maintenance_requests')
-    .select('status')
+    .select('status, resolved_at')
     .eq('organization_id', organizationId)
     .is('deleted_at', null)
 
-  const counts: Record<string, number> = {}
+  let open = 0
+  let inProgress = 0
+  let resolved = 0
+  let resolvedThisMonth = 0
+
   for (const r of data ?? []) {
-    counts[r.status] = (counts[r.status] ?? 0) + 1
+    if (r.status === 'open') open++
+    else if (r.status === 'in_progress') inProgress++
+    else if (r.status === 'resolved') {
+      resolved++
+      if (r.resolved_at && r.resolved_at >= monthStart) resolvedThisMonth++
+    }
   }
-  return counts
+
+  return { open, inProgress, resolved, resolvedThisMonth }
 }

@@ -3,11 +3,15 @@
 import { revalidatePath } from 'next/cache'
 import { createServerClient } from '@micronest/auth'
 import {
+  checkResidentLimit,
+  checkRoomLimit,
+  getProvider,
+} from '@micronest/db'
+import {
   createVisitor as dbCreateVisitor,
   checkOutVisitor as dbCheckOutVisitor,
   createMaintenanceRequest as dbCreateMaintenanceRequest,
   updateMaintenanceRequestStatus as dbUpdateMaintenanceRequestStatus,
-  assignMaintenanceRequest as dbAssignMaintenanceRequest,
   createResident as dbCreateResident,
   updateResident as dbUpdateResident,
   checkoutResident as dbCheckoutResident,
@@ -25,6 +29,23 @@ import {
   createAuditLog,
   isOrganizationEmpty,
   seedDemoData as dbSeedDemoData,
+  toggleNotificationTemplate,
+  createNotificationRule,
+  updateNotificationRule,
+  deleteNotificationRule,
+  retryNotificationLog,
+  registerProvider,
+  consoleNotificationProvider,
+  notificationEngine,
+  getNotificationEngineStats,
+  regenerateReceipt as dbRegenerateReceipt,
+  getAllResidentPaymentSummaries,
+  getProviderSettings,
+  saveProviderSettings,
+  notifyAnnouncement,
+  notifyMaintenanceResolved,
+  sendPendingNotifications as dbSendPendingNotifications,
+  listResidents,
 } from '@micronest/db'
 
 async function getOrgId(supabase: ReturnType<typeof createServerClient> extends Promise<infer T> ? T : never) {
@@ -111,6 +132,7 @@ export async function createMaintenanceRequest(
       description: formData.get('description') as string,
       category: formData.get('category') as string,
       priority: formData.get('priority') as string || undefined,
+      assigned_to: formData.get('assigned_to') as string || null,
       resident_id: formData.get('resident_id') as string || null,
       room_id: formData.get('room_id') as string || null,
     },
@@ -127,7 +149,7 @@ export async function createMaintenanceRequest(
   return { error: null, success: true }
 }
 
-export async function updateMaintenanceStatus(id: string, status: string) {
+export async function startWork(id: string) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -136,38 +158,65 @@ export async function updateMaintenanceStatus(id: string, status: string) {
   if (!orgId) return { error: 'No organization found' }
 
   const req = await dbUpdateMaintenanceRequestStatus(
-    supabase, orgId, id, status as any, user.id
+    supabase, orgId, id, 'in_progress', user.id
   )
-  if (!req) return { error: 'Failed to update status.' }
+  if (!req) return { error: 'Failed to start work.' }
 
   await createAuditLog(supabase, {
-    organization_id: orgId, user_id: user.id, action: 'maintenance.updated',
+    organization_id: orgId, user_id: user.id, action: 'maintenance.started',
     entity_type: 'staynest_maintenance_request', entity_id: req.id,
-    metadata: { status },
   })
   revalidatePath('/dashboard/staynest/maintenance')
   revalidatePath('/dashboard/staynest')
 }
 
-export async function assignMaintenanceRequest(id: string, assignedTo: string) {
+export async function resolveRequest(
+  _prev: { error?: string | null; success?: boolean },
+  formData: FormData
+) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' }
+  if (!user) return { error: 'Not authenticated', success: false }
 
   const orgId = await getOrgId(supabase)
-  if (!orgId) return { error: 'No organization found' }
+  if (!orgId) return { error: 'No organization found', success: false }
 
-  const req = await dbAssignMaintenanceRequest(supabase, orgId, id, assignedTo)
-  if (!req) return { error: 'Failed to assign request.' }
+  const id = formData.get('id') as string
+  if (!id) return { error: 'Request ID is required.', success: false }
+
+  const req = await dbUpdateMaintenanceRequestStatus(
+    supabase, orgId, id, 'resolved', user.id,
+    { resolved_notes: formData.get('resolved_notes') as string || null }
+  )
+  if (!req) return { error: 'Failed to resolve request.', success: false }
 
   await createAuditLog(supabase, {
-    organization_id: orgId, user_id: user.id, action: 'maintenance.assigned',
+    organization_id: orgId, user_id: user.id, action: 'maintenance.resolved',
     entity_type: 'staynest_maintenance_request', entity_id: req.id,
-    metadata: { assigned_to: assignedTo },
   })
+
+  if (req.resident_id) {
+    const { data: resident } = await supabase
+      .from('staynest_residents')
+      .select('id, full_name, phone')
+      .eq('id', req.resident_id)
+      .single()
+
+    if (resident?.phone) {
+      await notifyMaintenanceResolved(supabase, orgId, {
+        id: resident.id,
+        full_name: resident.full_name,
+        phone: resident.phone,
+      }, req.title)
+    }
+  }
+
   revalidatePath('/dashboard/staynest/maintenance')
   revalidatePath('/dashboard/staynest')
+  return { error: null, success: true }
 }
+
+
 
 export async function createResident(
   _prev: { error?: string | null; success?: boolean },
@@ -179,6 +228,14 @@ export async function createResident(
 
   const orgId = await getOrgId(supabase)
   if (!orgId) return { error: 'No organization found', success: false }
+
+  const limitCheck = await checkResidentLimit(supabase, orgId)
+  if (!limitCheck.allowed) {
+    return {
+      error: `Plan limit reached. You have ${limitCheck.current} ${limitCheck.limitName}s (max ${limitCheck.limit}). ${limitCheck.upgradeLabel}.`,
+      success: false,
+    }
+  }
 
   const resident = await dbCreateResident(
     supabase, orgId,
@@ -289,6 +346,14 @@ export async function createRoom(
 
   const orgId = await getOrgId(supabase)
   if (!orgId) return { error: 'No organization found', success: false }
+
+  const limitCheck = await checkRoomLimit(supabase, orgId)
+  if (!limitCheck.allowed) {
+    return {
+      error: `Plan limit reached. You have ${limitCheck.current} ${limitCheck.limitName}s (max ${limitCheck.limit}). ${limitCheck.upgradeLabel}.`,
+      success: false,
+    }
+  }
 
   const room = await dbCreateRoom(supabase, orgId, {
     room_number: formData.get('room_number') as string,
@@ -488,6 +553,12 @@ export async function createAnnouncement(
     organization_id: orgId, user_id: user.id, action: 'announcement.created',
     entity_type: 'staynest_announcement', entity_id: announcement.id,
   })
+
+  const residents = await listResidents(supabase, orgId)
+  for (const resident of residents.filter(r => r.status === 'active' && r.phone)) {
+    await notifyAnnouncement(supabase, orgId, resident.phone!, announcement.title, announcement.message)
+  }
+
   revalidatePath('/dashboard/staynest/announcements')
   revalidatePath('/dashboard/staynest')
   return { error: null, success: true }
@@ -593,5 +664,402 @@ export async function seedDemoData() {
   })
 
   revalidatePath('/dashboard/staynest')
+  return { error: null, success: true }
+}
+
+// ── Notification Center Actions ────────────────────────────────────────────
+
+// Register ConsoleNotificationProvider on first import
+registerProvider('whatsapp', consoleNotificationProvider)
+registerProvider('email', consoleNotificationProvider)
+registerProvider('sms', consoleNotificationProvider)
+
+export async function toggleTemplateAction(
+  templateId: string,
+  isActive: boolean
+) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const result = await toggleNotificationTemplate(supabase, templateId, isActive)
+  if (!result) return { error: 'Failed to update template' }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id,
+    action: `notification_template.${isActive ? 'activated' : 'deactivated'}`,
+    entity_type: 'staynest_notification_template', entity_id: templateId,
+  })
+  revalidatePath('/dashboard/staynest/notifications')
+  return { error: null }
+}
+
+export async function createRuleAction(
+  _prev: { error?: string | null; success?: boolean },
+  formData: FormData
+) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated', success: false }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', success: false }
+
+  const rule = await createNotificationRule(supabase, orgId, {
+    name: formData.get('name') as string,
+    trigger_event: formData.get('trigger_event') as string,
+    trigger_config: formData.get('trigger_config') ? JSON.parse(formData.get('trigger_config') as string) : {},
+    template_id: formData.get('template_id') as string || null,
+  })
+  if (!rule) return { error: 'Failed to create rule.', success: false }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: 'notification_rule.created',
+    entity_type: 'staynest_notification_rule', entity_id: rule.id,
+  })
+  revalidatePath('/dashboard/staynest/notifications')
+  return { error: null, success: true }
+}
+
+export async function toggleRuleAction(ruleId: string, isActive: boolean) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const result = await updateNotificationRule(supabase, ruleId, { is_active: isActive })
+  if (!result) return { error: 'Failed to update rule' }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id,
+    action: `notification_rule.${isActive ? 'activated' : 'deactivated'}`,
+    entity_type: 'staynest_notification_rule', entity_id: ruleId,
+  })
+  revalidatePath('/dashboard/staynest/notifications')
+  return { error: null }
+}
+
+export async function deleteRuleAction(ruleId: string) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  await deleteNotificationRule(supabase, ruleId)
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: 'notification_rule.deleted',
+    entity_type: 'staynest_notification_rule', entity_id: ruleId,
+  })
+  revalidatePath('/dashboard/staynest/notifications')
+  return { error: null }
+}
+
+export async function retryNotificationAction(logId: string) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const log = await retryNotificationLog(supabase, logId)
+  if (!log) return { error: 'Failed to retry notification' }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: 'notification.retried',
+    entity_type: 'staynest_notification_log', entity_id: logId,
+  })
+  revalidatePath('/dashboard/staynest/notifications')
+  return { error: null }
+}
+
+// ── Receipt Actions ────────────────────────────────────────────────────────
+
+export async function regenerateReceiptAction(receiptId: string) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const result = await dbRegenerateReceipt(supabase, orgId, receiptId, user.id)
+  if (!result.newReceipt) return { error: 'Failed to regenerate receipt' }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: 'receipt.regenerated',
+    entity_type: 'staynest_receipt', entity_id: result.newReceipt.id,
+    metadata: { old_receipt_id: receiptId, new_receipt_number: result.newReceipt.receipt_number },
+  })
+  revalidatePath('/dashboard/staynest/receipts')
+  return { error: null }
+}
+
+export async function getAllPaymentSummariesAction() {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return null
+
+  const summaries = await getAllResidentPaymentSummaries(supabase, orgId)
+  return Object.fromEntries(summaries)
+}
+
+// ── Notification Engine Actions ────────────────────────────────────────────
+
+export async function executeRuleAction(triggerEvent: string) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated', rules_executed: 0, notifications_created: 0, errors: ['Not authenticated'] }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', rules_executed: 0, notifications_created: 0, errors: ['No organization found'] }
+
+  const result = await notificationEngine.executeRule(supabase, orgId, triggerEvent)
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: `notification_rule.executed`,
+    entity_type: 'staynest_notification_rule',
+    metadata: { trigger_event: triggerEvent, notifications_created: result.notifications_created, errors: result.errors },
+  })
+
+  revalidatePath('/dashboard/staynest/notifications')
+  return { error: result.errors.length > 0 ? result.errors.join('; ') : null, ...result }
+}
+
+export async function executeAllRulesAction() {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated', rules_executed: 0, notifications_created: 0, errors: ['Not authenticated'] }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found', rules_executed: 0, notifications_created: 0, errors: ['No organization found'] }
+
+  const result = await notificationEngine.executeAllRules(supabase, orgId)
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id, action: 'notification_rules.executed_all',
+    entity_type: 'staynest_notification_rule',
+    metadata: { rules_executed: result.rules_executed, notifications_created: result.notifications_created, errors: result.errors },
+  })
+
+  revalidatePath('/dashboard/staynest/notifications')
+  return { error: result.errors.length > 0 ? result.errors.join('; ') : null, ...result }
+}
+
+export async function getNotificationStatsAction() {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return null
+
+  return getNotificationEngineStats(supabase, orgId)
+}
+
+// ── Provider Settings Actions ─────────────────────────────────────────
+
+export async function getProviderSettingsAction() {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return null
+
+  return getProviderSettings(supabase, orgId)
+}
+
+export async function saveProviderAction(
+  providerName: string,
+  fields: Record<string, string>
+) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const currentProviders = await getProviderSettings(supabase, orgId)
+  currentProviders[providerName] = fields
+
+  const success = await saveProviderSettings(supabase, orgId, currentProviders)
+  if (!success) return { error: 'Failed to save provider settings' }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id,
+    action: `provider_settings.${providerName}.updated`,
+    entity_type: 'staynest_notification_provider',
+    metadata: { provider: providerName },
+  })
+
+  revalidatePath('/dashboard/staynest/notifications')
+  return { error: null }
+}
+
+export async function disconnectProviderAction(providerName: string) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const currentProviders = await getProviderSettings(supabase, orgId)
+  delete currentProviders[providerName]
+
+  const success = await saveProviderSettings(supabase, orgId, currentProviders)
+  if (!success) return { error: 'Failed to disconnect provider' }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id,
+    action: `provider_settings.${providerName}.disconnected`,
+    entity_type: 'staynest_notification_provider',
+    metadata: { provider: providerName },
+  })
+
+  revalidatePath('/dashboard/staynest/notifications')
+  return { error: null }
+}
+
+export async function sendPendingNotificationsAction(): Promise<{ error?: string | null; sent?: number }> {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const sent = await dbSendPendingNotifications(supabase, orgId)
+  revalidatePath('/dashboard/staynest/notifications')
+  return { error: null, sent }
+}
+
+export async function testProviderConnectionAction(
+  providerName: string
+): Promise<{ error?: string | null; success?: boolean }> {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const providerSettings = await getProviderSettings(supabase, orgId)
+  const credentials = providerSettings[providerName]
+  if (!credentials) return { error: 'No credentials saved for this provider' }
+
+  try {
+    const handler = getProvider(providerName)
+    if (!handler) return { error: `Unknown provider: ${providerName}` }
+
+    const result = await handler.validateConnection(credentials)
+    if (result.success) {
+      await createAuditLog(supabase, {
+        organization_id: orgId, user_id: user.id,
+        action: `provider.${providerName}.connection_tested`,
+        entity_type: 'staynest_notification_provider',
+        metadata: { provider: providerName, result: 'success' },
+      })
+      return { error: null, success: true }
+    }
+    return { error: result.error ?? 'Connection test failed' }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to test connection' }
+  }
+}
+
+export async function sendTestMessageAction(
+  providerName: string,
+  phone: string
+): Promise<{ error?: string | null; success?: boolean; providerMessageId?: string }> {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  if (!phone?.trim()) return { error: 'Phone number is required' }
+
+  const providerSettings = await getProviderSettings(supabase, orgId)
+  const credentials = providerSettings[providerName]
+  if (!credentials) return { error: 'No credentials saved for this provider' }
+
+  try {
+    const handler = getProvider(providerName)
+    if (!handler) return { error: `Unknown provider: ${providerName}` }
+
+    const testMessage = 'This is a test message from StayNest. Your WhatsApp provider is configured correctly.'
+    const result = await handler.sendTestMessage(credentials, phone.trim(), testMessage)
+
+    await supabase.from('staynest_notification_logs').insert({
+      organization_id: orgId,
+      template_id: null,
+      event: 'test_message',
+      channel: 'whatsapp',
+      recipient: phone.trim(),
+      rendered_message: testMessage,
+      status: result.success ? 'sent' : 'failed',
+      error_message: result.error ?? null,
+      sent_at: result.success ? new Date().toISOString() : null,
+      provider_message_id: result.providerMessageId ?? null,
+    })
+
+    if (result.success) {
+      return { error: null, success: true, providerMessageId: result.providerMessageId }
+    }
+    return { error: result.error ?? 'Failed to send test message' }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to send test message' }
+  }
+}
+
+export async function activateProviderAction(
+  providerName: string
+): Promise<{ error?: string | null; success?: boolean }> {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const orgId = await getOrgId(supabase)
+  if (!orgId) return { error: 'No organization found' }
+
+  const providerSettings = await getProviderSettings(supabase, orgId)
+  const credentials = providerSettings[providerName]
+  if (!credentials) return { error: 'No credentials saved for this provider. Save credentials first.' }
+
+  // Deactivate all other providers, activate this one
+  for (const name of Object.keys(providerSettings)) {
+    if (name === providerName) {
+      providerSettings[name] = { ...providerSettings[name], activated: 'true' }
+    } else {
+      providerSettings[name] = { ...providerSettings[name], activated: 'false' }
+    }
+  }
+
+  const success = await saveProviderSettings(supabase, orgId, providerSettings)
+  if (!success) return { error: 'Failed to activate provider' }
+
+  await createAuditLog(supabase, {
+    organization_id: orgId, user_id: user.id,
+    action: `provider.${providerName}.activated`,
+    entity_type: 'staynest_notification_provider',
+    metadata: { provider: providerName },
+  })
+
+  revalidatePath('/dashboard/staynest/notifications')
   return { error: null, success: true }
 }

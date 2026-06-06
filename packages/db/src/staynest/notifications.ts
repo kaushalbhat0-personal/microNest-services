@@ -1,4 +1,6 @@
-import type { DBClient, StayNestNotificationLog, StayNestNotificationTemplate } from '../types'
+import type { DBClient, StayNestNotificationLog, StayNestNotificationRule, StayNestNotificationTemplate, NotificationProviderResult } from '../types'
+import { getProviderSettings } from './provider-settings'
+import { getActiveProvider } from './providers/provider-router'
 
 // ── Template Rendering ─────────────────────────────────────────────────────
 
@@ -143,7 +145,7 @@ export async function notifyAnnouncement(
 
 export type NotificationProvider = (
   log: StayNestNotificationLog
-) => Promise<{ success: boolean; error?: string }>
+) => Promise<NotificationProviderResult>
 
 const providers = new Map<string, NotificationProvider>()
 
@@ -182,6 +184,7 @@ export async function sendPendingNotifications(
         status: result.success ? 'sent' : 'failed',
         error_message: result.error ?? null,
         sent_at: result.success ? new Date().toISOString() : null,
+        provider_message_id: result.providerMessageId ?? null,
       })
       .eq('id', log.id)
 
@@ -219,4 +222,187 @@ export async function listNotificationTemplates(
     .order('event')
 
   return data ?? []
+}
+
+// ── Template Toggle ────────────────────────────────────────────────────────
+
+export async function toggleNotificationTemplate(
+  supabase: DBClient,
+  templateId: string,
+  isActive: boolean
+): Promise<StayNestNotificationTemplate | null> {
+  const { data } = await supabase
+    .from('staynest_notification_templates')
+    .update({ is_active: isActive })
+    .eq('id', templateId)
+    .select('*')
+    .single()
+
+  return data
+}
+
+// ── Automation Rules CRUD ──────────────────────────────────────────────────
+
+export async function listNotificationRules(
+  supabase: DBClient,
+  organizationId: string
+): Promise<StayNestNotificationRule[]> {
+  const { data } = await supabase
+    .from('staynest_notification_rules')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .order('created_at', { ascending: false })
+
+  return data ?? []
+}
+
+export async function createNotificationRule(
+  supabase: DBClient,
+  organizationId: string,
+  input: {
+    name: string
+    trigger_event: string
+    trigger_config?: Record<string, any>
+    template_id?: string | null
+  }
+): Promise<StayNestNotificationRule | null> {
+  const { data } = await supabase
+    .from('staynest_notification_rules')
+    .insert({
+      organization_id: organizationId,
+      name: input.name,
+      trigger_event: input.trigger_event,
+      trigger_config: input.trigger_config ?? {},
+      template_id: input.template_id ?? null,
+    })
+    .select('*')
+    .single()
+
+  return data
+}
+
+export async function updateNotificationRule(
+  supabase: DBClient,
+  ruleId: string,
+  input: Partial<{
+    name: string
+    trigger_event: string
+    trigger_config: Record<string, any>
+    template_id: string | null
+    is_active: boolean
+  }>
+): Promise<StayNestNotificationRule | null> {
+  const { data } = await supabase
+    .from('staynest_notification_rules')
+    .update({ ...input, updated_at: new Date().toISOString() })
+    .eq('id', ruleId)
+    .select('*')
+    .single()
+
+  return data
+}
+
+export async function deleteNotificationRule(
+  supabase: DBClient,
+  ruleId: string
+): Promise<void> {
+  await supabase
+    .from('staynest_notification_rules')
+    .delete()
+    .eq('id', ruleId)
+}
+
+// ── Log Retry ──────────────────────────────────────────────────────────────
+
+export async function retryNotificationLog(
+  supabase: DBClient,
+  logId: string
+): Promise<StayNestNotificationLog | null> {
+  const { data } = await supabase
+    .from('staynest_notification_logs')
+    .update({ status: 'pending', error_message: null, sent_at: null })
+    .eq('id', logId)
+    .select('*')
+    .single()
+
+  return data
+}
+
+// ── Direct Provider Dispatch (for engine integration) ────────────────────
+
+export async function sendSingleNotification(
+  supabase: DBClient,
+  organizationId: string,
+  log: StayNestNotificationLog
+): Promise<NotificationProviderResult> {
+  const providerSettings = await getProviderSettings(supabase, organizationId)
+  const active = getActiveProvider(providerSettings)
+
+  if (!active) {
+    await supabase
+      .from('staynest_notification_logs')
+      .update({ status: 'failed', error_message: 'No active provider configured for this organization' })
+      .eq('id', log.id)
+    return { success: false, error: 'No active provider configured for this organization' }
+  }
+
+  try {
+    const result = await active.handler.sendMessage(active.credentials, log.recipient, log.rendered_message)
+
+    await supabase
+      .from('staynest_notification_logs')
+      .update({
+        status: result.success ? 'sent' : 'failed',
+        error_message: result.error ?? null,
+        sent_at: result.success ? new Date().toISOString() : null,
+        provider_message_id: result.providerMessageId ?? null,
+      })
+      .eq('id', log.id)
+
+    return result
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : 'Provider dispatch failed'
+    await supabase
+      .from('staynest_notification_logs')
+      .update({ status: 'failed', error_message: errorMessage })
+      .eq('id', log.id)
+    return { success: false, error: errorMessage }
+  }
+}
+
+export async function sendBatchViaProvider(
+  supabase: DBClient,
+  organizationId: string,
+  logs: StayNestNotificationLog[]
+): Promise<{ sent: number; failed: number }> {
+  let sent = 0
+  let failed = 0
+
+  for (const log of logs) {
+    try {
+      const result = await sendSingleNotification(supabase, organizationId, log)
+      if (result.success) sent++
+      else failed++
+    } catch {
+      failed++
+    }
+  }
+
+  return { sent, failed }
+}
+
+// ── Console Notification Provider (stub) ──────────────────────────────────
+
+export const consoleNotificationProvider: NotificationProvider = async (log) => {
+  console.log(
+    `[ConsoleNotificationProvider] --- Notification ---`,
+    {
+      id: log.id,
+      event: log.event,
+      channel: log.channel,
+      recipient: log.recipient,
+      message: log.rendered_message,
+    }
+  )
+  return { success: true }
 }

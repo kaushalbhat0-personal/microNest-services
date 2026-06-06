@@ -7,14 +7,6 @@ export {
 } from './visitors'
 
 export {
-  listComplaints,
-  getComplaintById,
-  createComplaint,
-  updateComplaintStatus,
-  countComplaintsByStatus,
-} from './complaints'
-
-export {
   listResidents,
   getResidentById,
   createResident,
@@ -67,7 +59,6 @@ export {
   getMaintenanceRequestById,
   createMaintenanceRequest,
   updateMaintenanceRequestStatus,
-  assignMaintenanceRequest,
   countMaintenanceRequestsByStatus,
 } from './maintenance'
 
@@ -90,6 +81,13 @@ export {
   sendPendingNotifications,
   listNotificationLogs,
   listNotificationTemplates,
+  toggleNotificationTemplate,
+  listNotificationRules,
+  createNotificationRule,
+  updateNotificationRule,
+  deleteNotificationRule,
+  retryNotificationLog,
+  consoleNotificationProvider,
 } from './notifications'
 
 export type { StayNestAnalytics } from './analytics'
@@ -112,4 +110,21 @@ export {
   exportVisitorsCSV,
 } from './export'
 
+export {
+  listReceipts,
+  getReceiptById,
+  getReceiptsByResident,
+  voidReceipt,
+  regenerateReceipt,
+  getResidentPaymentSummary,
+  getAllResidentPaymentSummaries,
+} from './receipts'
+
+export { notificationEngine, NotificationEngine, getNotificationEngineStats } from './notification-engine'
+export type { ExecutionResult } from './notification-engine'
+
 export { isOrganizationEmpty, seedDemoData } from './demo'
+
+export { getProviderSettings, saveProviderSettings, PROVIDER_DEFINITIONS } from './provider-settings'
+export type { ProviderName, ProviderConfig, ProviderField } from './provider-settings'
+export { getProvider, getActiveProvider } from './providers/provider-router'

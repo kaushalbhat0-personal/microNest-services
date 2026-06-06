@@ -170,14 +170,15 @@ export interface StayNestMaintenanceRequest {
   title: string
   description: string
   category: 'electrical' | 'plumbing' | 'furniture' | 'internet' | 'cleaning' | 'other'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  status: 'open' | 'assigned' | 'in_progress' | 'resolved' | 'closed'
+  priority: 'low' | 'medium' | 'high'
+  status: 'open' | 'in_progress' | 'resolved'
   resident_id: string | null
   room_id: string | null
   assigned_to: string | null
   resolved_at: string | null
   resolved_by: string | null
   notes: string | null
+  resolved_notes: string | null
   deleted_at: string | null
   created_by: string
   created_at: string
@@ -241,8 +242,30 @@ export interface StayNestReceipt {
   payment_method: 'cash' | 'upi' | 'bank_transfer' | 'other'
   payment_date: string
   notes: string | null
+  status: 'active' | 'voided'
+  void_reason: string | null
+  voided_at: string | null
+  voided_by: string | null
+  regenerated_from_id: string | null
   created_by: string
   created_at: string
+}
+
+export interface StayNestReceiptWithDetails extends StayNestReceipt {
+  resident_name: string
+  resident_phone: string
+  room_number: string | null
+  billing_month: number
+  billing_year: number
+  rent_amount: number
+}
+
+export interface ResidentPaymentSummary {
+  total_paid: number
+  total_due: number
+  outstanding: number
+  last_payment: string | null
+  last_payment_amount: number | null
 }
 
 export interface StayNestNotificationTemplate {
@@ -267,7 +290,36 @@ export interface StayNestNotificationLog {
   status: 'pending' | 'sent' | 'failed'
   error_message: string | null
   sent_at: string | null
+  provider_message_id: string | null
   created_at: string
+}
+
+export interface NotificationProviderResult {
+  success: boolean
+  providerMessageId?: string
+  error?: string
+}
+
+export interface StayNestNotificationRule {
+  id: string
+  organization_id: string
+  name: string
+  trigger_event: 'rent_due' | 'rent_overdue' | 'announcement_created' | 'maintenance_resolved'
+  trigger_config: Record<string, any>
+  template_id: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface NotificationEngineStats {
+  total_sent: number
+  total_pending: number
+  total_failed: number
+  total_logs: number
+  success_rate: number
+  by_event: Record<string, { sent: number; pending: number; failed: number }>
+  last_execution: string | null
 }
 
 export type FeedbackCategory =
@@ -386,8 +438,8 @@ export interface Database {
       }
       staynest_receipts: {
         Row: StayNestReceipt
-        Insert: Omit<StayNestReceipt, 'id' | 'created_at'>
-        Update: never
+        Insert: Omit<StayNestReceipt, 'id' | 'created_at' | 'status' | 'void_reason' | 'voided_at' | 'voided_by' | 'regenerated_from_id'>
+        Update: Partial<Omit<StayNestReceipt, 'id'>>
         Relationships: []
       }
       staynest_notification_templates: {
@@ -400,6 +452,12 @@ export interface Database {
         Row: StayNestNotificationLog
         Insert: Omit<StayNestNotificationLog, 'id' | 'created_at'>
         Update: Partial<Omit<StayNestNotificationLog, 'id'>>
+        Relationships: []
+      }
+      staynest_notification_rules: {
+        Row: StayNestNotificationRule
+        Insert: Omit<StayNestNotificationRule, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<StayNestNotificationRule, 'id'>>
         Relationships: []
       }
     }

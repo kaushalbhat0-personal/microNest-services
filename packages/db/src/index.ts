@@ -14,10 +14,11 @@ export type {
   StayNestReceipt,
   StayNestNotificationTemplate,
   StayNestNotificationLog,
+  StayNestNotificationRule,
   StayNestMaintenanceRequest,
   StayNestAnnouncement,
 } from './types'
-export type { StayNestAnalytics, GlobalSearchResult } from './staynest'
+export type { StayNestAnalytics, GlobalSearchResult, ProviderName, ProviderConfig, ProviderField } from './staynest'
 export type {
   OrganizationRole,
   SubscriptionStatus,
@@ -25,9 +26,20 @@ export type {
   FeedbackCategory,
   FeedbackStatus,
   ProductFeedback,
+  StayNestReceiptWithDetails,
+  ResidentPaymentSummary,
+  NotificationEngineStats,
 } from './types'
 export type { Database, DBClient } from './types'
 export { createClient } from './client'
+export {
+  checkResidentLimit,
+  checkRoomLimit,
+  checkPropertyLimit,
+  getPlanUsage,
+  getOrgUsageCounts,
+} from './plan-guard'
+export type { PlanCheckResult } from './plan-guard'
 export {
   getUserOrganizations,
   getOrganization,
@@ -36,6 +48,8 @@ export {
   getOrganizationEcosystems,
   activateEcosystem,
   getOrganizationSubscription,
+  createOrganizationSubscription,
+  updateOrganizationSubscription,
   createAuditLog,
   getAuditLogs,
   userHasOrganization,
@@ -67,6 +81,13 @@ export {
   generateRentForMonth,
   recordPayment,
   getReceipts,
+  listReceipts,
+  getReceiptById,
+  getReceiptsByResident,
+  voidReceipt,
+  regenerateReceipt,
+  getResidentPaymentSummary,
+  getAllResidentPaymentSummaries,
   calculateAndApplyLateFees,
   getRevenueStats,
   listRecurringRevenue,
@@ -92,8 +113,22 @@ export {
   sendPendingNotifications,
   listNotificationLogs,
   listNotificationTemplates,
+  toggleNotificationTemplate,
+  listNotificationRules,
+  createNotificationRule,
+  updateNotificationRule,
+  deleteNotificationRule,
+  retryNotificationLog,
+  consoleNotificationProvider,
+  notificationEngine,
+  getNotificationEngineStats,
   isOrganizationEmpty,
   seedDemoData,
+  getProviderSettings,
+  saveProviderSettings,
+  PROVIDER_DEFINITIONS,
+  getProvider,
+  getActiveProvider,
 } from './staynest'
 export {
   createProductFeedback,
@@ -104,7 +139,6 @@ export {
   getMaintenanceRequestById,
   createMaintenanceRequest,
   updateMaintenanceRequestStatus,
-  assignMaintenanceRequest,
   countMaintenanceRequestsByStatus,
 } from './staynest/maintenance'
 export {

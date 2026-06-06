@@ -22,10 +22,8 @@ export interface StayNestAnalytics {
   }
   maintenance: {
     open: number
-    assigned: number
     in_progress: number
     resolved: number
-    closed: number
     total: number
   }
   visitors: {
@@ -36,6 +34,7 @@ export interface StayNestAnalytics {
   }
   revenueTrend: { month: string; expected: number; collected: number }[]
   occupancyTrend: { month: string; occupied: number; total: number }[]
+  maintenanceTrend: { month: string; open: number; resolved: number }[]
 }
 
 export async function getStayNestAnalytics(
@@ -57,6 +56,8 @@ export async function getStayNestAnalytics(
     visitorsRes,
     rentRes,
     revenueTrendData,
+    maintenanceTrendData,
+    occupancyTrendData,
   ] = await Promise.all([
     supabase
       .from('staynest_rooms')
@@ -66,7 +67,7 @@ export async function getStayNestAnalytics(
 
     supabase
       .from('staynest_residents')
-      .select('status')
+      .select('check_in_date, check_out_date, status')
       .eq('organization_id', organizationId)
       .is('deleted_at', null),
 
@@ -88,6 +89,8 @@ export async function getStayNestAnalytics(
       .eq('organization_id', organizationId),
 
     getRevenueTrend(supabase, organizationId),
+    getMaintenanceTrend(supabase, organizationId),
+    buildOccupancyTrend(supabase, organizationId),
   ])
 
   const rooms = roomsRes.data ?? []
@@ -112,10 +115,8 @@ export async function getStayNestAnalytics(
 
   // ── Maintenance ──
   const openMaint = maintenance.filter((r) => r.status === 'open').length
-  const assignedMaint = maintenance.filter((r) => r.status === 'assigned').length
   const inProgressMaint = maintenance.filter((r) => r.status === 'in_progress').length
   const resolvedMaint = maintenance.filter((r) => r.status === 'resolved').length
-  const closedMaint = maintenance.filter((r) => r.status === 'closed').length
 
   // ── Visitors ──
   const visitorsToday = visitors.filter(
@@ -143,9 +144,6 @@ export async function getStayNestAnalytics(
     .filter((r) => r.status === 'overdue')
     .reduce((s, r) => s + r.amount, 0)
 
-  // Occupancy trend (last 6 months)
-  const occupancyTrend = buildOccupancyTrend(supabase, organizationId)
-
   return {
     occupancy: {
       total_rooms: totalRooms,
@@ -168,10 +166,8 @@ export async function getStayNestAnalytics(
     },
     maintenance: {
       open: openMaint,
-      assigned: assignedMaint,
       in_progress: inProgressMaint,
       resolved: resolvedMaint,
-      closed: closedMaint,
       total: maintenance.length,
     },
     visitors: {
@@ -181,7 +177,8 @@ export async function getStayNestAnalytics(
       total: visitors.length,
     },
     revenueTrend: await revenueTrendData,
-    occupancyTrend: await occupancyTrend,
+    occupancyTrend: await occupancyTrendData,
+    maintenanceTrend: await maintenanceTrendData,
   }
 }
 
@@ -224,22 +221,40 @@ export async function buildOccupancyTrend(
   supabase: DBClient,
   organizationId: string
 ): Promise<{ month: string; occupied: number; total: number }[]> {
-  const { data: rooms } = await supabase
-    .from('staynest_rooms')
-    .select('capacity, occupied_beds')
-    .eq('organization_id', organizationId)
-    .is('deleted_at', null)
+  const [roomsRes, residentsRes] = await Promise.all([
+    supabase
+      .from('staynest_rooms')
+      .select('capacity')
+      .eq('organization_id', organizationId)
+      .is('deleted_at', null),
+    supabase
+      .from('staynest_residents')
+      .select('check_in_date, check_out_date, status')
+      .eq('organization_id', organizationId)
+      .is('deleted_at', null),
+  ])
 
-  const totalCapacity = (rooms ?? []).reduce((s, r) => s + r.capacity, 0)
-  const occupied = (rooms ?? []).reduce((s, r) => s + r.occupied_beds, 0)
+  const totalCapacity = (roomsRes.data ?? []).reduce((s, r) => s + r.capacity, 0)
+  const residents = residentsRes.data ?? []
 
   const now = new Date()
   const result: { month: string; occupied: number; total: number }[] = []
 
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const monthStart = d.toISOString()
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59).toISOString()
     const label = d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })
-    // Current occupancy is the same for recent months (no historical tracking yet)
+
+    const occupied = residents.filter((r) => {
+      const checkIn = r.check_in_date
+      const checkOut = r.check_out_date
+      if (!checkIn) return false
+      if (checkIn > monthEnd) return false
+      if (checkOut && checkOut < monthStart) return false
+      return true
+    }).length
+
     result.push({ month: label, occupied, total: totalCapacity })
   }
 
@@ -271,8 +286,8 @@ export async function getMaintenanceTrend(
       .lte('created_at', endOfMonth)
 
     const records = data ?? []
-    const open = records.filter((r) => r.status === 'open' || r.status === 'assigned' || r.status === 'in_progress').length
-    const resolved = records.filter((r) => r.status === 'resolved' || r.status === 'closed').length
+    const open = records.filter((r) => r.status === 'open' || r.status === 'in_progress').length
+    const resolved = records.filter((r) => r.status === 'resolved').length
 
     const label = new Date(y, m - 1).toLocaleDateString('en-IN', {
       month: 'short', year: '2-digit',

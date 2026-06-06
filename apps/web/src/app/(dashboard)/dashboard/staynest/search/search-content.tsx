@@ -182,7 +182,7 @@ export function SearchContent() {
           <ResultSection
             title="Maintenance"
             items={results.maintenance}
-            href={(r) => `/dashboard/staynest/complaints`}
+            href={() => `/dashboard/staynest/maintenance`}
             render={(r) => (
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">

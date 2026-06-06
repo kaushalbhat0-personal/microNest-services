@@ -133,192 +133,223 @@ function getDaysAgo(days: number): string {
   return d.toISOString()
 }
 
+async function rollbackSeed(
+  supabase: DBClient,
+  organizationId: string,
+  roomIds: string[],
+  residentIds: string[]
+): Promise<void> {
+  const tables = [
+    'staynest_announcements',
+    'staynest_visitors',
+    'staynest_maintenance_requests',
+    'staynest_rent_records',
+    'staynest_residents',
+    'staynest_rooms',
+  ] as const
+  for (const table of tables) {
+    await supabase.from(table).delete().eq('organization_id', organizationId)
+  }
+}
+
 export async function seedDemoData(
   supabase: DBClient,
   organizationId: string,
   userId: string
 ): Promise<void> {
-  // 1. Seed rooms
-  const { data: rooms } = await supabase
-    .from('staynest_rooms')
-    .insert(
-      ROOM_DATA.map((room) => ({
-        organization_id: organizationId,
-        ...room,
-        status: 'available',
-        occupied_beds: 0,
-        created_by: userId,
-      }))
-    )
-    .select('id, room_number')
+  let roomIds: string[] = []
+  let residentIds: string[] = []
 
-  if (!rooms) throw new Error('Failed to create rooms')
-  const roomMap = new Map(rooms.map((r) => [r.room_number, r.id]))
-
-  // 2. Seed residents and track resident IDs + room occupancy
-  const residentInserts = RESIDENT_DATA.map((r) => ({
-    organization_id: organizationId,
-    full_name: r.full_name,
-    phone: r.phone,
-    gender: r.gender,
-    emergency_contact_name: r.emergency_contact_name,
-    emergency_contact_phone: r.emergency_contact_phone,
-    email: null,
-    id_proof_type: null,
-    id_proof_number: null,
-    room_id: roomMap.get(r.room_number) ?? null,
-    check_in_date: r.check_in_date,
-    status: 'active' as const,
-    created_by: userId,
-  }))
-
-  const { data: residents } = await supabase
-    .from('staynest_residents')
-    .insert(residentInserts)
-    .select('id, full_name, room_id')
-
-  if (!residents) throw new Error('Failed to create residents')
-
-  // Update room occupancy
-  const roomOccupancy = new Map<string, number>()
-  for (const r of residents) {
-    if (r.room_id) {
-      roomOccupancy.set(r.room_id, (roomOccupancy.get(r.room_id) ?? 0) + 1)
-    }
-  }
-  for (const [roomId, count] of roomOccupancy) {
-    const status = count >= (ROOM_DATA.find((rd) => roomMap.get(rd.room_number) === roomId)?.capacity ?? 1)
-      ? 'full' : 'partially_occupied'
-    await supabase
+  try {
+    // 1. Seed rooms
+    const { data: rooms } = await supabase
       .from('staynest_rooms')
-      .update({ occupied_beds: count, status })
-      .eq('id', roomId)
-      .eq('organization_id', organizationId)
-  }
+      .insert(
+        ROOM_DATA.map((room) => ({
+          organization_id: organizationId,
+          ...room,
+          status: 'available',
+          occupied_beds: 0,
+          created_by: userId,
+        }))
+      )
+      .select('id, room_number')
 
-  // 3. Seed rent records (mix of paid, pending, overdue)
-  const rentRecords: {
-    organization_id: string
-    resident_id: string
-    room_id: string | null
-    billing_month: number
-    billing_year: number
-    amount: number
-    due_date: string
-    status: 'pending' | 'paid' | 'overdue'
-    paid_at: string | null
-    payment_method: string | null
-    notes: string | null
-    created_by: string
-  }[] = []
+    if (!rooms) throw new Error('Failed to create rooms')
+    roomIds = rooms.map((r) => r.id)
+    const roomMap = new Map(rooms.map((r) => [r.room_number, r.id]))
 
-  const now = new Date()
-  const currentMonth = now.getMonth() + 1
-  const currentYear = now.getFullYear()
-
-  const PAYMENT_METHODS = ['cash', 'upi', 'bank_transfer'] as const
-
-  for (let rIdx = 0; rIdx < residents.length; rIdx++) {
-    const resident = residents[rIdx]
-    const roomNumber = RESIDENT_DATA[rIdx].room_number
-    const room = ROOM_DATA.find((rd) => rd.room_number === roomNumber)
-    const amount = room?.rent_per_bed ?? 5000
-    const roomId = roomMap.get(roomNumber) ?? null
-
-    for (let offset = 0; offset < 3; offset++) {
-      let month = currentMonth - offset
-      let year = currentYear
-      if (month <= 0) { month += 12; year -= 1 }
-
-      const dueDate = new Date(year, month - 1, 5)
-      const idx = rIdx * 3 + offset
-
-      const STATUSES: ('pending' | 'paid' | 'overdue')[][] = [
-        ['pending', 'paid', 'pending', 'pending', 'paid', 'paid'],
-        ['paid', 'paid', 'paid', 'pending', 'overdue', 'paid'],
-        ['paid', 'paid', 'overdue', 'paid', 'paid', 'paid'],
-      ]
-
-      let status = STATUSES[offset][idx % 6]
-      let paidAt: string | null = null
-      let paymentMethod: string | null = null
-
-      if (status === 'paid') {
-        paidAt = getDaysAgo((idx % 20) + 5)
-        paymentMethod = PAYMENT_METHODS[idx % 3]
-      }
-
-      rentRecords.push({
-        organization_id: organizationId,
-        resident_id: resident.id,
-        room_id: roomId,
-        billing_month: month,
-        billing_year: year,
-        amount,
-        due_date: dueDate.toISOString(),
-        status,
-        paid_at: paidAt,
-        payment_method: paymentMethod,
-        notes: null,
-        created_by: userId,
-      })
-    }
-  }
-
-  const { error: rentError } = await supabase
-    .from('staynest_rent_records')
-    .insert(rentRecords)
-  if (rentError) throw new Error('Failed to create rent records')
-
-  // 4. Seed maintenance requests
-  const maintInserts = MAINTENANCE_DATA.map((m, i) => ({
-    organization_id: organizationId,
-    ...m,
-    status: (['open', 'in_progress', 'resolved', 'assigned', 'closed'] as const)[i % 5],
-    resident_id: residents?.[i % residents.length]?.id ?? null,
-    room_id: residents?.[i % residents.length]?.room_id ?? null,
-    created_by: userId,
-  }))
-
-  const { error: maintError } = await supabase
-    .from('staynest_maintenance_requests')
-    .insert(maintInserts)
-  if (maintError) throw new Error('Failed to create maintenance requests')
-
-  // 5. Seed visitors
-  const visitorInserts = VISITOR_DATA.map((v, i) => {
-    const checkedOut = i % 3 !== 0
-    return {
+    // 2. Seed residents and track resident IDs + room occupancy
+    const residentInserts = RESIDENT_DATA.map((r) => ({
       organization_id: organizationId,
-      name: v.name,
-      phone: v.phone,
-      purpose: v.purpose,
-      room_number: v.room_number,
-      resident_id: residents?.[i % residents.length]?.id ?? null,
-      status: checkedOut ? 'checked-out' : 'checked-in',
-      check_in_at: getDaysAgo(Math.floor(i / 2)),
-      check_out_at: checkedOut ? getDaysAgo(Math.floor(i / 3)) : null,
+      full_name: r.full_name,
+      phone: r.phone,
+      gender: r.gender,
+      emergency_contact_name: r.emergency_contact_name,
+      emergency_contact_phone: r.emergency_contact_phone,
+      email: null,
+      id_proof_type: null,
+      id_proof_number: null,
+      room_id: roomMap.get(r.room_number) ?? null,
+      check_in_date: r.check_in_date,
+      status: 'active' as const,
       created_by: userId,
+    }))
+
+    const { data: residents } = await supabase
+      .from('staynest_residents')
+      .insert(residentInserts)
+      .select('id, full_name, room_id')
+
+    if (!residents) throw new Error('Failed to create residents')
+    residentIds = residents.map((r) => r.id)
+
+    // Update room occupancy
+    const roomOccupancy = new Map<string, number>()
+    for (const r of residents) {
+      if (r.room_id) {
+        roomOccupancy.set(r.room_id, (roomOccupancy.get(r.room_id) ?? 0) + 1)
+      }
     }
-  })
+    for (const [roomId, count] of roomOccupancy) {
+      const status = count >= (ROOM_DATA.find((rd) => roomMap.get(rd.room_number) === roomId)?.capacity ?? 1)
+        ? 'full' : 'partially_occupied'
+      await supabase
+        .from('staynest_rooms')
+        .update({ occupied_beds: count, status })
+        .eq('id', roomId)
+        .eq('organization_id', organizationId)
+    }
 
-  const { error: visitorError } = await supabase
-    .from('staynest_visitors')
-    .insert(visitorInserts)
-  if (visitorError) throw new Error('Failed to create visitors')
+    // 3. Seed rent records (mix of paid, pending, overdue)
+    const rentRecords: {
+      organization_id: string
+      resident_id: string
+      room_id: string | null
+      billing_month: number
+      billing_year: number
+      amount: number
+      due_date: string
+      status: 'pending' | 'paid' | 'overdue'
+      paid_at: string | null
+      payment_method: string | null
+      notes: string | null
+      created_by: string
+    }[] = []
 
-  // 6. Seed announcements
-  const announcementInserts = ANNOUNCEMENT_DATA.map((a, i) => ({
-    organization_id: organizationId,
-    title: a.title,
-    message: a.message,
-    priority: a.priority,
-    publish_date: getDaysAgo(i * 3 + 1).slice(0, 10),
-    created_by: userId,
-  }))
+    const now = new Date()
+    const currentMonth = now.getMonth() + 1
+    const currentYear = now.getFullYear()
 
-  const { error: announcementError } = await supabase
-    .from('staynest_announcements')
-    .insert(announcementInserts)
-  if (announcementError) throw new Error('Failed to create announcements')
+    const PAYMENT_METHODS = ['cash', 'upi', 'bank_transfer'] as const
+
+    for (let rIdx = 0; rIdx < residents.length; rIdx++) {
+      const resident = residents[rIdx]
+      const roomNumber = RESIDENT_DATA[rIdx].room_number
+      const room = ROOM_DATA.find((rd) => rd.room_number === roomNumber)
+      const amount = room?.rent_per_bed ?? 5000
+      const roomId = roomMap.get(roomNumber) ?? null
+
+      for (let offset = 0; offset < 3; offset++) {
+        let month = currentMonth - offset
+        let year = currentYear
+        if (month <= 0) { month += 12; year -= 1 }
+
+        const dueDate = new Date(year, month - 1, 5)
+        const idx = rIdx * 3 + offset
+
+        const STATUSES: ('pending' | 'paid' | 'overdue')[][] = [
+          ['pending', 'paid', 'pending', 'pending', 'paid', 'paid'],
+          ['paid', 'paid', 'paid', 'pending', 'overdue', 'paid'],
+          ['paid', 'paid', 'overdue', 'paid', 'paid', 'paid'],
+        ]
+
+        let status = STATUSES[offset][idx % 6]
+        let paidAt: string | null = null
+        let paymentMethod: string | null = null
+
+        if (status === 'paid') {
+          paidAt = getDaysAgo((idx % 20) + 5)
+          paymentMethod = PAYMENT_METHODS[idx % 3]
+        }
+
+        rentRecords.push({
+          organization_id: organizationId,
+          resident_id: resident.id,
+          room_id: roomId,
+          billing_month: month,
+          billing_year: year,
+          amount,
+          due_date: dueDate.toISOString(),
+          status,
+          paid_at: paidAt,
+          payment_method: paymentMethod,
+          notes: null,
+          created_by: userId,
+        })
+      }
+    }
+
+    const { error: rentError } = await supabase
+      .from('staynest_rent_records')
+      .insert(rentRecords)
+    if (rentError) throw new Error('Failed to create rent records')
+
+    // 4. Seed maintenance requests
+    const maintInserts = MAINTENANCE_DATA.map((m, i) => ({
+      organization_id: organizationId,
+      ...m,
+      status: (['open', 'in_progress', 'resolved', 'assigned', 'closed'] as const)[i % 5],
+      resident_id: residents?.[i % residents.length]?.id ?? null,
+      room_id: residents?.[i % residents.length]?.room_id ?? null,
+      created_by: userId,
+    }))
+
+    const { error: maintError } = await supabase
+      .from('staynest_maintenance_requests')
+      .insert(maintInserts)
+    if (maintError) throw new Error('Failed to create maintenance requests')
+
+    // 5. Seed visitors
+    const visitorInserts = VISITOR_DATA.map((v, i) => {
+      const checkedOut = i % 3 !== 0
+      return {
+        organization_id: organizationId,
+        name: v.name,
+        phone: v.phone,
+        purpose: v.purpose,
+        room_number: v.room_number,
+        resident_id: residents?.[i % residents.length]?.id ?? null,
+        status: checkedOut ? 'checked-out' : 'checked-in',
+        check_in_at: getDaysAgo(Math.floor(i / 2)),
+        check_out_at: checkedOut ? getDaysAgo(Math.floor(i / 3)) : null,
+        created_by: userId,
+      }
+    })
+
+    const { error: visitorError } = await supabase
+      .from('staynest_visitors')
+      .insert(visitorInserts)
+    if (visitorError) throw new Error('Failed to create visitors')
+
+    // 6. Seed announcements
+    const announcementInserts = ANNOUNCEMENT_DATA.map((a, i) => ({
+      organization_id: organizationId,
+      title: a.title,
+      message: a.message,
+      priority: a.priority,
+      publish_date: getDaysAgo(i * 3 + 1).slice(0, 10),
+      created_by: userId,
+    }))
+
+    const { error: announcementError } = await supabase
+      .from('staynest_announcements')
+      .insert(announcementInserts)
+    if (announcementError) throw new Error('Failed to create announcements')
+  } catch (err) {
+    if (roomIds.length > 0) {
+      await rollbackSeed(supabase, organizationId, roomIds, residentIds)
+    }
+    throw err
+  }
 }

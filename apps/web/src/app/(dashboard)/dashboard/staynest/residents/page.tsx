@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { createServerClient } from '@micronest/auth'
-import { getUserOrganizations, listResidents } from '@micronest/db'
+import { getUserOrganizations, listResidents, getAllResidentPaymentSummaries } from '@micronest/db'
 import { ResidentsContent } from './residents-content'
 
 export const metadata: Metadata = {
@@ -15,17 +15,22 @@ export default async function ResidentsPage() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return <ResidentsContent initialResidents={[]} organizationId={null} />
+    return <ResidentsContent initialResidents={[]} paymentSummaries={{}} organizationId={null} />
   }
 
   const orgs = await getUserOrganizations(supabase, user.id)
 
   if (orgs.length === 0) {
-    return <ResidentsContent initialResidents={[]} organizationId={null} />
+    return <ResidentsContent initialResidents={[]} paymentSummaries={{}} organizationId={null} />
   }
 
   const orgId = orgs[0].id
-  const residents = await listResidents(supabase, orgId)
+  const [residents, summariesMap] = await Promise.all([
+    listResidents(supabase, orgId),
+    getAllResidentPaymentSummaries(supabase, orgId),
+  ])
 
-  return <ResidentsContent initialResidents={residents} organizationId={orgId} />
+  const paymentSummaries = Object.fromEntries(summariesMap)
+
+  return <ResidentsContent initialResidents={residents} paymentSummaries={paymentSummaries} organizationId={orgId} />
 }

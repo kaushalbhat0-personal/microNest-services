@@ -71,6 +71,7 @@ export async function generateRentForMonth(
     .from('staynest_rooms')
     .select('id, rent_per_bed')
     .eq('organization_id', organizationId)
+    .is('deleted_at', null)
 
   const roomRentMap = new Map((rooms ?? []).map((r) => [r.id, r.rent_per_bed]))
 

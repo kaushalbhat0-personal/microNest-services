@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Card, CardBody, StatusBadge, CountUp, FadeIn } from '@micronest/ui'
+import { Card, CardBody, StatusBadge, CountUp, FadeIn, UsageBar, UpgradeBanner } from '@micronest/ui'
 import { createServerClient } from '@micronest/auth'
-import { getUserOrganizations, isOrganizationEmpty, listVisitors, listMaintenanceRequests, countMaintenanceRequestsByStatus, countResidentsByStatus, listRooms, getRevenueStats, listActiveAnnouncements } from '@micronest/db'
+import { getUserOrganizations, isOrganizationEmpty, listVisitors, listMaintenanceRequests, countMaintenanceRequestsByStatus, countResidentsByStatus, listRooms, getRevenueStats, listActiveAnnouncements, getPlanUsage } from '@micronest/db'
 import { DemoContent } from './demo-content'
 
 export const metadata: Metadata = {
@@ -14,12 +14,10 @@ const statusVariant: Record<string, 'info' | 'success'> = {
   'checked-out': 'success',
 }
 
-const complaintVariant: Record<string, 'info' | 'warning' | 'success' | 'default'> = {
+const maintenanceVariant: Record<string, 'info' | 'warning' | 'success' | 'default'> = {
   open: 'info',
-  assigned: 'warning',
   in_progress: 'warning',
   resolved: 'success',
-  closed: 'default',
 }
 
 function formatTime(iso: string) {
@@ -59,8 +57,8 @@ export default async function StayNestOverviewPage() {
   }
 
   let recentVisitors: { id: string; name: string; room_number: string; purpose: string; status: string; check_in_at: string }[] = []
-  let recentComplaints: { id: string; title: string; status: string; created_at: string }[] = []
-  let openComplaintsCount = 0
+  let recentMaintenance: { id: string; title: string; status: string; created_at: string }[] = []
+  let openMaintenanceCount = 0
   let activeResidentsCount = 0
   let totalRooms = 0
   let totalCapacity = 0
@@ -68,8 +66,10 @@ export default async function StayNestOverviewPage() {
   let rentStats = { monthlyRevenue: 0, pendingRevenue: 0, overdueRevenue: 0, collectionRate: 0, totalCollected: 0, totalDue: 0 }
   let publishedNoticesCount = 0
   let visitorsTodayCount = 0
+  let planUsage: Awaited<ReturnType<typeof getPlanUsage>> | null = null
 
   if (user && orgId) {
+    planUsage = await getPlanUsage(supabase, orgId)
     const allVisitors = await listVisitors(supabase, orgId)
     recentVisitors = allVisitors.slice(0, 3)
 
@@ -79,11 +79,11 @@ export default async function StayNestOverviewPage() {
       (v) => new Date(v.check_in_at) >= todayStart
     ).length
 
-    const allComplaints = await listMaintenanceRequests(supabase, orgId)
-    recentComplaints = allComplaints.slice(0, 3)
+    const allMaintenance = await listMaintenanceRequests(supabase, orgId)
+    recentMaintenance = allMaintenance.slice(0, 3)
 
-    const complaintCounts = await countMaintenanceRequestsByStatus(supabase, orgId)
-    openComplaintsCount = complaintCounts.open
+    const maintenanceCounts = await countMaintenanceRequestsByStatus(supabase, orgId)
+    openMaintenanceCount = maintenanceCounts.open
 
     const residentCounts = await countResidentsByStatus(supabase, orgId)
     activeResidentsCount = residentCounts.active
@@ -189,7 +189,7 @@ export default async function StayNestOverviewPage() {
                 Open Maintenance
               </p>
               <p className="mt-1 text-2xl font-bold text-amber-600">
-                <CountUp end={openComplaintsCount} />
+                <CountUp end={openMaintenanceCount} />
               </p>
               <p className="mt-1 text-xs text-gray-500">Require attention</p>
             </CardBody>
@@ -229,6 +229,35 @@ export default async function StayNestOverviewPage() {
           </Card>
         </div>
       </FadeIn>
+
+      {/* Plan Usage */}
+      {planUsage && (
+        <FadeIn delay={50}>
+          <div className="mb-8">
+            <UpgradeBanner planName={planUsage.planName} />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Card>
+                <CardBody>
+                  <UsageBar
+                    label="Residents"
+                    current={planUsage.residents.current}
+                    limit={planUsage.residents.limit}
+                  />
+                </CardBody>
+              </Card>
+              <Card>
+                <CardBody>
+                  <UsageBar
+                    label="Rooms"
+                    current={planUsage.rooms.current}
+                    limit={planUsage.rooms.limit}
+                  />
+                </CardBody>
+              </Card>
+            </div>
+          </div>
+        </FadeIn>
+      )}
 
       {/* Recent Visitors + Recent Complaints */}
       <FadeIn delay={50}>
@@ -283,47 +312,46 @@ export default async function StayNestOverviewPage() {
           </div>
         </Card>
 
-        {/* Recent Complaints */}
+        {/* Recent Maintenance */}
         <Card padding="none">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
             <h3 className="text-sm font-semibold text-gray-900">
               Recent Maintenance
             </h3>
             <Link
-              href="/dashboard/staynest/complaints"
+              href="/dashboard/staynest/maintenance"
               className="text-xs font-medium text-amber-600 hover:text-amber-500"
             >
               View all
             </Link>
           </div>
           <div className="divide-y divide-gray-100">
-            {recentComplaints.length === 0 ? (
+            {recentMaintenance.length === 0 ? (
               <p className="px-4 py-6 text-center text-sm text-gray-400">
-                No complaints yet.
+                No requests yet.
               </p>
             ) : (
-              recentComplaints.map((complaint) => (
+              recentMaintenance.map((req) => (
                 <div
-                  key={complaint.id}
+                  key={req.id}
                   className="flex items-center justify-between px-4 py-3"
                 >
                   <div>
                     <p className="text-sm font-medium text-gray-900">
-                      {complaint.title}
+                      {req.title}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Status: {complaint.status}
+                      Status: {req.status.replace('_', ' ')}
                     </p>
                   </div>
                   <div className="text-right">
                     <StatusBadge
-                      variant={complaintVariant[complaint.status] ?? 'default'}
+                      variant={maintenanceVariant[req.status] ?? 'default'}
                     >
-                      {complaint.status.charAt(0).toUpperCase() +
-                        complaint.status.slice(1)}
+                      {req.status === 'in_progress' ? 'In Progress' : req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                     </StatusBadge>
                     <p className="mt-0.5 text-xs text-gray-400">
-                      {formatDate(complaint.created_at)}
+                      {formatDate(req.created_at)}
                     </p>
                   </div>
                 </div>
@@ -350,7 +378,7 @@ export default async function StayNestOverviewPage() {
           ← Log a visitor
         </Link>
         <Link
-          href="/dashboard/staynest/complaints"
+          href="/dashboard/staynest/maintenance"
           className="min-h-[44px] inline-flex items-center rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
         >
           ← Raise request
@@ -366,6 +394,12 @@ export default async function StayNestOverviewPage() {
             className="min-h-[44px] inline-flex items-center rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
           >
             ← View announcements
+          </Link>
+          <Link
+            href="/dashboard/staynest/analytics"
+            className="min-h-[44px] inline-flex items-center rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+          >
+            ← View Analytics
           </Link>
         </div>
       </FadeIn>

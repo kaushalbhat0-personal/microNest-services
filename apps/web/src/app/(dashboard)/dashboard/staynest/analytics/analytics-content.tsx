@@ -17,8 +17,6 @@ function formatCurrency(amount: number) {
   }).format(amount)
 }
 
-// ── Lightweight SVG Bar ─────────────────────────────────────────────────
-
 function BarChart({
   data,
   height = 160,
@@ -84,8 +82,6 @@ function BarChart({
   )
 }
 
-// ── Metric Card ─────────────────────────────────────────────────────────
-
 function MetricCard({
   label,
   value,
@@ -125,7 +121,7 @@ export function AnalyticsContent({
     )
   }
 
-  const { occupancy, revenue, residents, maintenance, visitors, revenueTrend, occupancyTrend } = analytics
+  const { occupancy, revenue, residents, maintenance, visitors, revenueTrend, occupancyTrend, maintenanceTrend } = analytics
 
   return (
     <div>
@@ -137,20 +133,19 @@ export function AnalyticsContent({
       {/* ── Occupancy ── */}
       <FadeIn>
         <h3 className="mb-3 text-sm font-semibold text-gray-900">Occupancy</h3>
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Total Rooms" value={occupancy.total_rooms} />
+        <div className="mb-6 grid gap-4 sm:grid-cols-3">
+          <MetricCard label="Total Beds" value={occupancy.total_capacity} sub={`${occupancy.total_rooms} rooms`} color="text-gray-900" />
           <MetricCard label="Occupied Beds" value={occupancy.occupied_beds} color="text-green-600" />
-          <MetricCard label="Vacant Beds" value={occupancy.vacant_beds} color="text-amber-600" />
-          <MetricCard label="Occupancy Rate" value={`${occupancy.occupancy_percentage}%`} sub={`${occupancy.occupied_beds}/${occupancy.total_capacity} beds`} color="text-blue-600" />
+          <MetricCard label="Occupancy %" value={`${occupancy.occupancy_percentage}%`} sub={`${occupancy.vacant_beds} vacant`} color="text-blue-600" />
         </div>
       </FadeIn>
 
-      {/* ── Charts Row 1: Revenue Trend + Occupancy ── */}
+      {/* ── Charts Row: Revenue + Occupancy + Maintenance ── */}
       <FadeIn delay={50}>
-        <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <div className="mb-6 grid gap-6 lg:grid-cols-3">
           <Card>
             <CardBody>
-              <h4 className="mb-3 text-sm font-semibold text-gray-900">Revenue Trend</h4>
+              <h4 className="mb-3 text-sm font-semibold text-gray-900">Monthly Collections</h4>
               <BarChart
                 data={revenueTrend}
                 valueKey="collected"
@@ -171,6 +166,22 @@ export function AnalyticsContent({
               />
             </CardBody>
           </Card>
+          <Card>
+            <CardBody>
+              <h4 className="mb-3 text-sm font-semibold text-gray-900">Maintenance by Status</h4>
+              <BarChart
+                data={maintenanceTrend as any}
+                valueKey="open"
+                labelKey="month"
+                color="#dc2626"
+                format={(v) => `${v}`}
+              />
+              <div className="mt-2 flex items-center justify-center gap-4 text-xs text-gray-500">
+                <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded bg-red-600" /> Open</span>
+                <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded bg-green-600" /> Resolved</span>
+              </div>
+            </CardBody>
+          </Card>
         </div>
       </FadeIn>
 
@@ -178,43 +189,20 @@ export function AnalyticsContent({
       <FadeIn delay={100}>
         <h3 className="mb-3 text-sm font-semibold text-gray-900">Revenue</h3>
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Expected" value={formatCurrency(revenue.expected_revenue)} color="text-gray-900" />
-          <MetricCard label="Collected" value={formatCurrency(revenue.collected_revenue)} color="text-green-600" />
-          <MetricCard label="Pending" value={formatCurrency(revenue.pending_revenue)} color="text-amber-600" />
-          <MetricCard label="Overdue" value={formatCurrency(revenue.overdue_revenue)} color="text-red-600" />
+          <MetricCard label="Total Rent Due" value={formatCurrency(revenue.expected_revenue)} color="text-gray-900" />
+          <MetricCard label="Total Collected" value={formatCurrency(revenue.collected_revenue)} color="text-green-600" />
+          <MetricCard label="Pending Rent" value={formatCurrency(revenue.pending_revenue)} color="text-amber-600" />
+          <MetricCard label="Overdue Rent" value={formatCurrency(revenue.overdue_revenue)} color="text-red-600" />
         </div>
       </FadeIn>
 
-      {/* ── Residents ── */}
+      {/* ── Operations ── */}
       <FadeIn delay={150}>
-        <h3 className="mb-3 text-sm font-semibold text-gray-900">Residents</h3>
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Active" value={residents.active} color="text-green-600" />
-          <MetricCard label="Notice Period" value={residents.notice_period} color="text-amber-600" />
-          <MetricCard label="Checked Out" value={residents.checked_out} color="text-gray-500" />
-          <MetricCard label="Total" value={residents.total} color="text-blue-600" />
-        </div>
-      </FadeIn>
-
-      {/* ── Maintenance ── */}
-      <FadeIn delay={200}>
-        <h3 className="mb-3 text-sm font-semibold text-gray-900">Maintenance</h3>
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Open" value={maintenance.open} color="text-red-600" />
-          <MetricCard label="Assigned" value={maintenance.assigned} color="text-amber-600" />
-          <MetricCard label="In Progress" value={maintenance.in_progress} color="text-blue-600" />
-          <MetricCard label="Resolved" value={maintenance.resolved} color="text-green-600" />
-        </div>
-      </FadeIn>
-
-      {/* ── Visitors ── */}
-      <FadeIn delay={250}>
-        <h3 className="mb-3 text-sm font-semibold text-gray-900">Visitors</h3>
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Today" value={visitors.today} color="text-blue-600" />
-          <MetricCard label="This Week" value={visitors.week} color="text-indigo-600" />
-          <MetricCard label="This Month" value={visitors.month} color="text-purple-600" />
-          <MetricCard label="All Time" value={visitors.total} color="text-gray-900" />
+        <h3 className="mb-3 text-sm font-semibold text-gray-900">Operations</h3>
+        <div className="mb-6 grid gap-4 sm:grid-cols-3">
+          <MetricCard label="Active Residents" value={residents.active} color="text-green-600" />
+          <MetricCard label="Open Maintenance" value={maintenance.open} color="text-amber-600" />
+          <MetricCard label="Visitors Today" value={visitors.today} color="text-blue-600" />
         </div>
       </FadeIn>
     </div>

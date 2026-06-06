@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createServerClient } from '@micronest/auth'
 
 export async function login(
@@ -32,6 +33,18 @@ export async function signup(
 ) {
   const supabase = await createServerClient()
 
+  const cookieStore = await cookies()
+  const nonce = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+  cookieStore.set('auth_state', nonce, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    maxAge: 600,
+    path: '/',
+  })
+
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
@@ -44,6 +57,7 @@ export async function signup(
   })
 
   if (error) {
+    cookieStore.delete('auth_state')
     return { error: error.message }
   }
 

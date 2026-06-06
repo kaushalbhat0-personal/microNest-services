@@ -8,7 +8,7 @@ const CATEGORIES = [
   { value: 'rent', label: 'Rent Collection' },
   { value: 'rooms', label: 'Occupancy Tracking' },
   { value: 'visitors', label: 'Visitors' },
-  { value: 'complaints', label: 'Complaints' },
+  { value: 'maintenance', label: 'Maintenance Issues' },
   { value: 'electricity', label: 'Electricity Bills' },
   { value: 'deposits', label: 'Deposits' },
   { value: 'staff', label: 'Staff Management' },

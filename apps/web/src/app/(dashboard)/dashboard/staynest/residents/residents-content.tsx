@@ -12,7 +12,7 @@ import {
   CardBody,
 } from '@micronest/ui'
 import type { Column } from '@micronest/ui'
-import type { StayNestResident } from '@micronest/db'
+import type { StayNestResident, ResidentPaymentSummary } from '@micronest/db'
 import { createResident, updateResident, checkoutResident } from '@/lib/staynest/actions'
 
 const statusVariant: Record<string, 'success' | 'warning' | 'default'> = {
@@ -56,11 +56,21 @@ const emptyForm = {
   check_in_date: new Date().toISOString().slice(0, 10),
 }
 
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
 export function ResidentsContent({
   initialResidents,
+  paymentSummaries,
   organizationId,
 }: {
   initialResidents: StayNestResident[]
+  paymentSummaries: Record<string, ResidentPaymentSummary>
   organizationId: string | null
 }) {
   const router = useRouter()
@@ -398,36 +408,67 @@ export function ResidentsContent({
           columns={columns}
           data={initialResidents}
           keyExtractor={(r) => r.id}
-          renderCard={(r) => (
-            <div>
-              <div className="flex items-center justify-between">
-                <p className="font-medium text-gray-900">{r.full_name}</p>
-                <StatusBadge variant={statusVariant[r.status]}>
-                  {statusLabel[r.status]}
-                </StatusBadge>
-              </div>
-              <div className="mt-2 space-y-1 text-sm text-gray-500">
-                <p>Room {r.room_id ?? '—'} &middot; {r.phone}</p>
-                <p>Checked in {formatDate(r.check_in_date)}</p>
-              </div>
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => handleEdit(r)}
-                  className="min-h-[44px] rounded-md bg-indigo-50 px-4 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
-                >
-                  Edit
-                </button>
-                {r.status === 'active' && (
-                  <button
-                    onClick={() => handleCheckout(r.id)}
-                    className="min-h-[44px] rounded-md bg-amber-50 px-4 text-sm font-medium text-amber-700 hover:bg-amber-100"
-                  >
-                    Checkout
-                  </button>
+          renderCard={(r) => {
+            const ps = paymentSummaries[r.id]
+            return (
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="font-medium text-gray-900">{r.full_name}</p>
+                  <StatusBadge variant={statusVariant[r.status]}>
+                    {statusLabel[r.status]}
+                  </StatusBadge>
+                </div>
+                <div className="mt-2 space-y-1 text-sm text-gray-500">
+                  <p>Room {r.room_id ?? '—'} &middot; {r.phone}</p>
+                  <p>Checked in {formatDate(r.check_in_date)}</p>
+                </div>
+                {ps && (
+                  <div className="mt-2 grid grid-cols-2 gap-2 rounded-lg bg-gray-50 p-3 text-xs">
+                    <div>
+                      <p className="text-gray-500">Total Paid</p>
+                      <p className="font-semibold text-green-700">{formatCurrency(ps.total_paid)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Total Due</p>
+                      <p className="font-semibold text-gray-900">{formatCurrency(ps.total_due)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Outstanding</p>
+                      <p className={`font-semibold ${ps.outstanding > 0 ? 'text-red-600' : 'text-green-700'}`}>
+                        {formatCurrency(ps.outstanding)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Last Payment</p>
+                      <p className="font-semibold text-gray-900">
+                        {ps.last_payment ? (
+                          <>{ps.last_payment_amount ? formatCurrency(ps.last_payment_amount) : '—'}<br /><span className="text-gray-400">{formatDate(ps.last_payment)}</span></>
+                        ) : (
+                          '—'
+                        )}
+                      </p>
+                    </div>
+                  </div>
                 )}
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => handleEdit(r)}
+                    className="min-h-[44px] rounded-md bg-indigo-50 px-4 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+                  >
+                    Edit
+                  </button>
+                  {r.status === 'active' && (
+                    <button
+                      onClick={() => handleCheckout(r.id)}
+                      className="min-h-[44px] rounded-md bg-amber-50 px-4 text-sm font-medium text-amber-700 hover:bg-amber-100"
+                    >
+                      Checkout
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )
+          }}
         />
       )}
     </div>

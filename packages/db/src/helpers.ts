@@ -133,6 +133,47 @@ export async function getOrganizationSubscription(
   return data
 }
 
+export async function createOrganizationSubscription(
+  supabase: DBClient,
+  organizationId: string,
+  planName: string = 'starter',
+  status: Subscription['status'] = 'trial'
+): Promise<Subscription | null> {
+  const trialEndsAt = new Date()
+  trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+
+  const periodEndsAt = new Date()
+  periodEndsAt.setMonth(periodEndsAt.getMonth() + 1)
+
+  const { data } = await supabase
+    .from('subscriptions')
+    .insert({
+      organization_id: organizationId,
+      plan_name: planName,
+      status,
+      trial_ends_at: trialEndsAt.toISOString(),
+      current_period_starts_at: new Date().toISOString(),
+      current_period_ends_at: periodEndsAt.toISOString(),
+    })
+    .select('*')
+    .single() as unknown as { data: Subscription | null; error: unknown }
+  return data
+}
+
+export async function updateOrganizationSubscription(
+  supabase: DBClient,
+  organizationId: string,
+  updates: Partial<Pick<Subscription, 'plan_name' | 'status' | 'trial_ends_at' | 'current_period_ends_at'>>
+): Promise<Subscription | null> {
+  const { data } = await supabase
+    .from('subscriptions')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('organization_id', organizationId)
+    .select('*')
+    .single() as unknown as { data: Subscription | null; error: unknown }
+  return data
+}
+
 // ── Audit Log ──────────────────────────────────────────────────────────
 
 export async function createAuditLog(

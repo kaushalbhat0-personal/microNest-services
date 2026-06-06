@@ -7,6 +7,33 @@ export default {
   ],
   theme: {
     extend: {
+      colors: {
+        cream: '#f5f1ec',
+        charcoal: '#111111',
+        'ink-muted': '#626260',
+        'ink-subtle': '#7b7b78',
+        'ink-tertiary': '#9c9fa5',
+        'hairline-cream': '#d3cec6',
+        'hairline-soft': '#ebe7e1',
+        lavender: '#5e6ad2',
+        'lavender-hover': '#828fff',
+        'surface-dark': '#0f1011',
+        'canvas-dark': '#010102',
+      },
+      fontFamily: {
+        display: ['Inter', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['Geist Mono', '"JetBrains Mono"', 'ui-monospace', 'monospace'],
+      },
+      fontSize: {
+        'display-xl': ['72px', { lineHeight: '1.05', letterSpacing: '-2px', fontWeight: '500' }],
+        'display-lg': ['56px', { lineHeight: '1.10', letterSpacing: '-1.4px', fontWeight: '500' }],
+        'display-md': ['40px', { lineHeight: '1.15', letterSpacing: '-0.8px', fontWeight: '500' }],
+      },
+      borderRadius: {
+        'card': '12px',
+        'card-lg': '16px',
+      },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(4px)' },

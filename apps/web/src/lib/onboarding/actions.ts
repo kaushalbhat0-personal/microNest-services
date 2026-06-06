@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@micronest/auth'
-import { activateEcosystem, createAuditLog } from '@micronest/db'
+import { activateEcosystem, createAuditLog, createOrganizationSubscription } from '@micronest/db'
 
 function generateSlug(name: string): string {
   return name
@@ -99,6 +99,20 @@ export async function completeOnboarding(
       entity_id: eco.id,
     })
   }
+
+  // Create default subscription (free starter plan with 14-day trial)
+  const sub = await createOrganizationSubscription(supabase, org.id, 'starter', 'trial')
+  if (!sub) {
+    return { error: 'Failed to create subscription. Please try again.' }
+  }
+  await createAuditLog(supabase, {
+    organization_id: org.id,
+    user_id: user.id,
+    action: 'subscription.created',
+    entity_type: 'subscription',
+    entity_id: sub.id,
+    metadata: { plan_name: 'starter', status: 'trial' },
+  })
 
   // Log onboarding completion
   await createAuditLog(supabase, {

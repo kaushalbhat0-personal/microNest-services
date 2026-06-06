@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 
 export function FloatingCTA() {
   const [show, setShow] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
@@ -17,6 +18,16 @@ export function FloatingCTA() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  useEffect(() => {
+    const check = () => {
+      setDrawerOpen('mobileDrawerOpen' in document.documentElement.dataset)
+    }
+    check()
+    const observer = new MutationObserver(check)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-mobile-drawer-open'] })
+    return () => observer.disconnect()
+  }, [])
+
   const ctaText =
     pathname === '/ecosystems/staynest' || pathname.startsWith('/ecosystems/staynest')
       ? 'Start Free — No Credit Card'
@@ -25,7 +36,7 @@ export function FloatingCTA() {
   return (
     <div
       className={`fixed bottom-0 left-0 right-0 z-40 border-t border-border-light bg-white shadow-lg transition-transform duration-300 md:hidden ${
-        show ? 'translate-y-0' : 'translate-y-full'
+        show && !drawerOpen ? 'translate-y-0' : 'translate-y-full'
       }`}
     >
       <div className="flex items-center justify-between px-4 py-3">

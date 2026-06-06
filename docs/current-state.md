@@ -93,3 +93,83 @@ Production Status:
 - `packages/db/src/staynest/` contains feature-split repository files (visitors.ts, complaints.ts, residents.ts, rooms.ts, rents.ts, notices.ts) with a barrel `index.ts`.
 - `packages/db/src/` also has `helpers.ts` for cross-cutting queries (profiles, orgs, audit logs).
 - The old monolithic `staynest.ts` has been deleted.
+
+## Marketing Site Redesign v2
+
+**Date:** 2026-06-06
+
+### Homepage Structure (8 sections)
+
+| Section | Content |
+|---------|---------|
+| 1. Hero | "Run your business without spreadsheets" — dashboard mockup with live stats, two CTAs |
+| 2. Problem | 4 problem cards (PG Owners, Clinics, Freelancers, Real Estate) |
+| 3. Ecosystem Showcase | Large cards for StayNest (Live) and ClinicNest (Early Access) with screenshots, benefits, feature tags; smaller cards for FreelanceNest/PropertyNest (Coming Soon) |
+| 4. Why Choose | 3-column: Purpose Built, Unified Login, Grow Together |
+| 5. Real Screens | 4 dashboard mockups: Analytics, Rent Collection, Resident Directory, Maintenance Board |
+| 6. Social Proof | 3 testimonial cards (PG Owner, Clinic Owner, Freelancer) with generic placeholders |
+| 7. Pricing Preview | 3 tiers (Starter, Growth, Pro) with link to full pricing page |
+| 8. Final CTA | "Start with StayNest today." — Create Free Account |
+
+### Ecosystems Page Structure
+
+- **Header** — title + description
+- **Available Now** — Large featured cards for StayNest (Production Ready) and ClinicNest (Early Access) with screenshots, benefit lists, feature tags, dual CTAs
+- **Coming Soon** — Smaller cards for FreelanceNest and PropertyNest
+- **Ecosystem Roadmap** — Visual timeline with status indicators (Live → Early Access → In Development)
+
+### Mobile-First Strategy
+
+- All sections designed for 375px/390px/430px first
+- Single-column layout on mobile, multi-column on desktop
+- Floating bottom CTA (Start Free) appears on mobile after scrolling past hero
+- Full-screen navigation drawer with larger tap targets on mobile
+- Reduced text width, tighter spacing, one-column layouts
+- Sticky bottom CTA on marketing pages (homepage, StayNest page)
+- Larger tap targets throughout (min 44px on nav items, 48px on CTAs)
+
+### Conversion Goals
+
+- **Mobile conversion rate** — Floating CTA reduces friction on mobile
+- **Signups** — Multiple CTAs throughout the page (hero, ecosystem cards, pricing, final CTA)
+- **Demo requests** — "Explore StayNest" and "See Ecosystems" CTAs lead to product discovery
+- **Trust** — Real screenshot mockups, social proof, transparent pricing
+- **Product understanding** — Problem → Solution → Ecosystem showcase → Real screens flow
+
+### Design System
+
+- Background: `#f5f1ec` (cream)
+- Cards: `#ffffff` (white)
+- Text: `#111111` (charcoal)
+- Accent: `#5e6ad2` (lavender)
+- Muted: `#6b7280` (gray-500)
+- Borders: `#ece7df` (border-light)
+- Navigation: cream background with backdrop blur
+- Buttons: pill-shaped, charcoal primary, bordered secondary
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `apps/web/tailwind.config.ts` | Added `border-light: '#ece7df'` |
+| `apps/web/src/app/layout.tsx` | Updated metadata, OpenGraph, body bg/tx colors |
+| `apps/web/src/app/(marketing)/layout.tsx` | Added FloatingCTA, padding for mobile CTA |
+| `apps/web/src/app/(marketing)/page.tsx` | Complete homepage rewrite (8 sections) |
+| `apps/web/src/app/(marketing)/ecosystems/page.tsx` | Complete ecosystems rewrite |
+| `packages/ui/src/MarketingNav.tsx` | Premium redesign: Products dropdown, full-screen mobile drawer, CTA |
+| `packages/ui/src/Footer.tsx` | Multi-column footer with product/company/legal links |
+| `packages/ui/src/index.ts` | Added FloatingCTA export |
+
+### Files Created
+
+| File | Purpose |
+|------|---------|
+| `packages/ui/src/FloatingCTA.tsx` | Mobile floating bottom CTA component |
+| `docs/releases/marketing-redesign-v2.md` | Release documentation |
+
+### SEO Improvements
+
+- Updated root layout metadata with OpenGraph tags
+- Page-specific metadata (title, description, OpenGraph) on homepage and ecosystems page
+- Semantic HTML (proper section hierarchy, heading nesting)
+- Proper `title` template in root layout

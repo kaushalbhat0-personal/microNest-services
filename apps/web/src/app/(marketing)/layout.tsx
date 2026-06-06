@@ -1,5 +1,5 @@
 import { createServerClient } from '@micronest/auth'
-import { MarketingNav, Footer } from '@micronest/ui'
+import { MarketingNav, Footer, FloatingCTA } from '@micronest/ui'
 
 export default async function MarketingLayout({
   children,
@@ -14,8 +14,9 @@ export default async function MarketingLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <MarketingNav isLoggedIn={!!user} />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pb-16 md:pb-0">{children}</main>
       <Footer />
+      <FloatingCTA />
     </div>
   )
 }

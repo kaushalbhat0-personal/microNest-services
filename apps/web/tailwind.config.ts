@@ -15,6 +15,7 @@ export default {
         'ink-tertiary': '#9c9fa5',
         'hairline-cream': '#d3cec6',
         'hairline-soft': '#ebe7e1',
+        'border-light': '#ece7df',
         lavender: '#5e6ad2',
         'lavender-hover': '#828fff',
         'surface-dark': '#0f1011',
